@@ -159,13 +159,12 @@ async function testSubmit() {
 	result.textContent = "正在计算 HMAC 签名...";
 
 	const payload = JSON.stringify({
-		uuid: crypto.randomUUID(),
 		mod_id: "sts2-mod-example",
 		mod_version: "1.0.0",
 		game_version: "2.0",
 		error_message: "测试异常信息 — " + new Date().toISOString(),
 		stack_trace: "at GameLogic.update (GameLogic.cs:123)\\nat GameManager.run (GameManager.cs:456)",
-		game_state: "InGame",
+		game_state: "{\"game.scene\":\"CombatRoom\",\"game.in_run\":\"true\"}",
 		player_os: navigator.platform || "Unknown",
 		os_version: navigator.userAgent || "Unknown",
 		created_at: Date.now()
@@ -212,14 +211,15 @@ async function loadLogs() {
 			container.innerHTML = '<div class="empty-state"><p>暂无日志记录</p></div>';
 			return;
 		}
-		let html = '<table><thead><tr><th>时间</th><th>Mod</th><th>版本</th><th>异常</th><th>UUID</th></tr></thead><tbody>';
+		let html = '<table><thead><tr><th>时间</th><th>Mod</th><th>版本</th><th>异常</th><th>次数</th><th>Hash</th></tr></thead><tbody>';
 		for (const log of data.logs) {
 			html += '<tr>' +
 				'<td style="white-space:nowrap;font-size:0.75rem;color:#94a3b8;">' + new Date(log.created_at).toLocaleString() + '</td>' +
 				'<td><span class="tag">' + escapeHtml(log.mod_id) + '</span></td>' +
 				'<td>' + escapeHtml(log.mod_version) + '</td>' +
-				'<td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + escapeHtml(log.error_message) + '">' + escapeHtml(log.error_message) + '</td>' +
-				'<td style="font-family:monospace;font-size:0.75rem;color:#64748b;">' + escapeHtml(log.uuid.slice(0, 8)) + '…</td>' +
+				'<td style="max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + escapeHtml(log.error_message) + '">' + escapeHtml(log.error_message) + '</td>' +
+				'<td>' + log.count + '</td>' +
+				'<td style="font-family:monospace;font-size:0.75rem;color:#64748b;">' + escapeHtml(log.hash.slice(0, 8)) + '…</td>' +
 				'</tr>';
 		}
 		html += '</tbody></table><p style="color:#64748b;font-size:0.75rem;margin-top:0.5rem;">共 ' + data.logs.length + ' 条记录</p>';
@@ -244,7 +244,7 @@ function escapeHtml(s) {
 export async function handleAdminLogs(env: Env): Promise<Response> {
 	try {
 		const result = await env.DB.prepare(
-			`SELECT uuid, mod_id, mod_version, error_message, created_at FROM mod_errors ORDER BY created_at DESC LIMIT 50`
+			`SELECT hash, mod_id, mod_version, error_message, count, created_at FROM mod_errors ORDER BY created_at DESC LIMIT 50`
 		).all();
 		return new Response(JSON.stringify({ logs: result.results }), {
 			headers: { "Content-Type": "application/json" },

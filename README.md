@@ -144,7 +144,6 @@ X-Mod-Signature: <HMAC-SHA256 Base64 签名>
 
 | 字段 | 类型 | 必填 | 说明 |
 |------|------|------|------|
-| `uuid` | string | 是 | 唯一标识（用于去重） |
 | `mod_id` | string | 是 | Mod 标识符 |
 | `mod_version` | string | 是 | Mod 版本号 |
 | `game_version` | string | 否 | 游戏版本号 |
@@ -161,9 +160,15 @@ X-Mod-Signature: <HMAC-SHA256 Base64 签名>
 2. 将签名的二进制结果以 Base64 编码
 3. 放入 `X-Mod-Signature` 请求头
 
+**去重机制**：
+
+服务端对 `mod_id + mod_version + game_version + error_message + stack_trace` 取 SHA-256 作为唯一标识（`hash`）。
+相同错误重复提交时，会更新 `game_state`、`player_os`、`os_version`、`created_at`，并将 `count` 加 1。
+因此 Mod 端不需要生成并发送 UUID。
+
 **响应**：
 
-- `200` — `{"success": true}` 提交成功（可能因 uuid 重复而被忽略）
+- `200` — `{"success": true, "count": 1}` 提交成功，`count` 表示该错误累计发生次数（首次为 1，重复提交递增）
 - `401` — 缺少 `X-Mod-Signature` 头
 - `403` — HMAC 签名验证失败
 - `422` — 请求已过期（超过 `TIMEOUT` 秒）
