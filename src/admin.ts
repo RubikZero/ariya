@@ -248,6 +248,7 @@ function generateKey() {
   document.getElementById("test-key").value = key;
   document.getElementById("key-usage").scrollIntoView({ behavior:"smooth", block:"nearest" });
 }
+function htm(s) { if (!s) return ""; return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
 function copyKey() {
   const input = document.getElementById("generated-key");
   if (!input.value) return;
