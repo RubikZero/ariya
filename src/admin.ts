@@ -60,12 +60,38 @@ export function renderAdminPage(keyConfigured: boolean): Response {
 <main>
 	<div class="card">
 		<h2>🔑 生成 HMAC 密钥</h2>
-		<p style="color:#94a3b8;font-size:0.8125rem;margin-bottom:1rem;">将此密钥分别配置到 Worker 端（HMAC_SECRET_KEY）和 Mod 端。</p>
+		<p style="color:#94a3b8;font-size:0.8125rem;margin-bottom:1rem;">Ariya 使用 HMAC-SHA256 验证 Mod 发来的请求。Mod 和服务端必须使用<strong>相同的密钥</strong>。</p>
 		<div class="key-display">
 			<input type="text" id="generated-key" readonly placeholder="点击下方按钮生成密钥" />
 			<button class="btn-primary" onclick="generateKey()">生成</button>
 			<button class="btn-secondary" onclick="copyKey()">复制</button>
 			<span class="copy-msg" id="copy-msg">已复制</span>
+		</div>
+		<div id="key-usage" style="display:none;margin-top:1rem;border-top:1px solid #334155;padding-top:1rem;">
+			<p style="color:#f1f5f9;font-weight:600;margin-bottom:0.75rem;">使用此密钥需要完成以下配置：</p>
+
+			<div style="margin-bottom:1rem;">
+				<p style="color:#93c5fd;font-weight:500;margin-bottom:0.375rem;">步骤 1：配置到 Worker 端</p>
+				<p style="color:#94a3b8;font-size:0.8125rem;margin-bottom:0.25rem;">▸ 本地开发：将密钥填入 <code style="background:#0f172a;padding:0.125rem 0.375rem;border-radius:0.25rem;">.dev.vars</code></p>
+				<div style="background:#0f172a;padding:0.75rem;border-radius:0.375rem;font-size:0.8125rem;font-family:monospace;margin-bottom:0.5rem;">
+					HMAC_SECRET_KEY=<span id="usage-key-local"></span>
+				</div>
+				<p style="color:#94a3b8;font-size:0.8125rem;margin-bottom:0.25rem;">▸ 生产部署：运行以下命令并粘贴密钥</p>
+				<div style="background:#0f172a;padding:0.75rem;border-radius:0.375rem;font-size:0.8125rem;font-family:monospace;margin-bottom:0.25rem;" id="usage-cmd-prod">
+					npx wrangler secret put HMAC_SECRET_KEY
+				</div>
+				<p style="color:#64748b;font-size:0.75rem;">执行后会提示输入值，粘贴生成的密钥后按回车</p>
+			</div>
+
+			<div style="margin-bottom:1rem;">
+				<p style="color:#93c5fd;font-weight:500;margin-bottom:0.375rem;">步骤 2：配置到 Mod 端</p>
+				<p style="color:#94a3b8;font-size:0.8125rem;">将相同的密钥填入 Mod 的 HMAC 密钥配置项中。</p>
+			</div>
+
+			<div>
+				<p style="color:#93c5fd;font-weight:500;margin-bottom:0.375rem;">步骤 3：测试验证</p>
+				<p style="color:#94a3b8;font-size:0.8125rem;">密钥已自动填入下方的测试区域，直接点击"发送测试请求"即可。</p>
+			</div>
 		</div>
 	</div>
 
@@ -73,10 +99,10 @@ export function renderAdminPage(keyConfigured: boolean): Response {
 		<h2>📤 测试提交</h2>
 		<p style="color:#94a3b8;font-size:0.8125rem;margin-bottom:1rem;">发送一条模拟日志到提交接口，验证端到端是否正常工作。</p>
 		<label>HMAC 密钥</label>
-		<input type="text" id="test-key" placeholder="粘贴生成的 HMAC 密钥" />
+		<input type="text" id="test-key" placeholder="粘贴或先生成 HMAC 密钥" />
 		<label>请求地址</label>
-		<input type="text" id="test-url" value="${keyConfigured ? '' : ''}" placeholder="${keyConfigured ? '你的 Worker 部署地址（如 https://ariya.example.workers.dev）' : '提示：部署后才能测试'}" />
-		<button class="btn-success" onclick="testSubmit()" ${keyConfigured ? '' : 'disabled'}>发送测试请求</button>
+		<input type="text" id="test-url" placeholder="例如 http://localhost:8787 或 https://ariya.example.workers.dev" />
+		<button class="btn-success" onclick="testSubmit()">发送测试请求</button>
 		<div class="result" id="test-result"></div>
 	</div>
 
@@ -89,11 +115,27 @@ export function renderAdminPage(keyConfigured: boolean): Response {
 	</div>
 </main>
 <script>
+// Auto-fill test URL on page load
+document.addEventListener("DOMContentLoaded", () => {
+	const urlInput = document.getElementById("test-url");
+	if (!urlInput.value) urlInput.value = window.location.origin;
+});
+
 function generateKey() {
 	const key = Array.from(crypto.getRandomValues(new Uint8Array(32)))
 		.map(b => b.toString(16).padStart(2, "0"))
 		.join("");
 	document.getElementById("generated-key").value = key;
+
+	// Show usage guide
+	document.getElementById("key-usage").style.display = "block";
+	document.getElementById("usage-key-local").textContent = key;
+
+	// Auto-fill test section
+	document.getElementById("test-key").value = key;
+
+	// Scroll to usage guide
+	document.getElementById("key-usage").scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
 
 function copyKey() {
