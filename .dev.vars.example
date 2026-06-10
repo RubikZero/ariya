@@ -1,0 +1,6 @@
+# HMAC-SHA256 密钥，用于验证 Mod 端发来的请求
+# 生产环境请通过 `npx wrangler secret put HMAC_SECRET_KEY` 设置
+HMAC_SECRET_KEY=your-secret-key-here
+
+# 请求过期时间（秒），超过此时间的请求将被拒绝
+TIMEOUT=600
