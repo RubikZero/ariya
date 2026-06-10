@@ -152,6 +152,10 @@ dist
 
 .vscode/
 
+# setup script output
+temp/
+tmp/
+
 # yarn v2
 
 .yarn/cache
