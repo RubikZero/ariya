@@ -4,3 +4,8 @@ HMAC_SECRET_KEY=your-secret-key-here
 
 # 请求过期时间（秒），超过此时间的请求将被拒绝
 TIMEOUT=600
+
+# 管理面板访问令牌（可选，推荐使用 Cloudflare API Token）
+# 不设置则管理面板不可用
+# 生产环境请通过 `npx wrangler secret put ADMIN_KEY` 设置
+ADMIN_KEY=your-cloudflare-api-token-or-any-secret

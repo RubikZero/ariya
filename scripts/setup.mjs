@@ -137,7 +137,17 @@ async function main() {
 	});
 	console.log("   ✅ HMAC_SECRET_KEY 已设置");
 
-	// Step 6: Run migrations
+	// Step 6: Set ADMIN_KEY (optional)
+	const setAdminKey = await question("\n🔐 是否设置管理面板访问令牌 (ADMIN_KEY)？推荐使用 Cloudflare API Token。(y/N): ");
+	if (setAdminKey.toLowerCase() === "y") {
+		console.log("\n🔐 设置 ADMIN_KEY...");
+		run("npx", ["wrangler", "secret", "put", "ADMIN_KEY"]);
+		console.log("   ✅ ADMIN_KEY 已设置");
+	} else {
+		console.log("   ⏭️  跳过。管理面板将不可用。");
+	}
+
+	// Step 7: Run migrations
 	console.log("\n🗄️  执行数据库迁移...");
 	run("npx", ["wrangler", "d1", "migrations", "apply", "DB", "--remote"]);
 
