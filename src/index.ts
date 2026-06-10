@@ -1,11 +1,10 @@
 interface LogPayload {
-	uuid: string
-	mod_id: string
+	mod_id: string;
 	mod_version: string;
 	game_version?: string;
 	error_message: string;
 	stack_trace: string;
-	game_state: string; // JSON-serialized dictionary: scene, room, combat, player HP, etc.
+	game_state: string;
 	player_os: string;
 	os_version: string;
 	created_at: number;
@@ -13,8 +12,8 @@ interface LogPayload {
 
 export interface Env {
 	DB: D1Database;
-	HMAC_SECRET_KEY: string; // HMAC密钥
-	TIMEOUT: number; // 请求过期时间（单位：秒）
+	HMAC_SECRET_KEY: string;
+	TIMEOUT: number;
 }
 
 import { renderAdminPage, handleAdminLogs } from "./admin.js";
@@ -23,7 +22,6 @@ export default {
 	async fetch(request, env, ctx): Promise<Response> {
 		const url = new URL(request.url);
 
-		// Admin panel
 		if (url.pathname === "/admin") {
 			return renderAdminPage(!!env.HMAC_SECRET_KEY);
 		}
@@ -31,44 +29,33 @@ export default {
 			return handleAdminLogs(env);
 		}
 
-		// Log submission endpoint
 		if (request.method !== "POST") {
 			return new Response("Method Not Allowed", { status: 405 });
 		}
+
 		const clientSignature = request.headers.get("X-Mod-Signature");
 		if (!clientSignature) return new Response("Unauthorized", { status: 401 });
+
 		try {
 			const rawBody = await request.text();
 			const encoder = new TextEncoder();
 			const keyData = encoder.encode(env.HMAC_SECRET_KEY);
 
 			const cryptoKey = await crypto.subtle.importKey(
-				"raw",
-				keyData,
-				{
-					name: "HMAC",
-					hash: { name: "SHA-256" }
-				},
-				false,
-				["verify"]
+				"raw", keyData,
+				{ name: "HMAC", hash: { name: "SHA-256" } },
+				false, ["verify"]
 			);
 
 			const signatureBuffer = Uint8Array.from(atob(clientSignature), c => c.charCodeAt(0));
-			const dataBuffer = encoder.encode(rawBody);
-
-			const isValid = await crypto.subtle.verify(
-				"HMAC",
-				cryptoKey,
-				signatureBuffer,
-				dataBuffer
-			);
+			const isValid = await crypto.subtle.verify("HMAC", cryptoKey, signatureBuffer, encoder.encode(rawBody));
 
 			if (!isValid) {
 				return new Response("Forbidden: Invalid HMAC", { status: 403 });
 			}
 
 			const logData = JSON.parse(rawBody) as LogPayload;
-			const { uuid, mod_id, mod_version, game_version, error_message, stack_trace, game_state, player_os, os_version, created_at } = logData;
+			const { mod_id, mod_version, game_version, error_message, stack_trace, game_state, player_os, os_version, created_at } = logData;
 
 			const now = Date.now();
 			if (Math.abs(now - created_at) > env.TIMEOUT * 1000) {
@@ -76,17 +63,25 @@ export default {
 				return new Response("Forbidden: Request expired", { status: 422 });
 			}
 
-			const info = await env.DB.prepare(
-				`INSERT OR IGNORE INTO mod_errors (uuid, mod_id, mod_version, game_version, error_message, stack_trace, game_state, player_os, os_version, created_at) 
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-			)
-				.bind(uuid, mod_id, mod_version, game_version || null, error_message, stack_trace, game_state || null, player_os || null, os_version || null, created_at)
-				.run();
-			if (info.meta.changes === 0) {
-				console.warn("Repeated log: %s", uuid);
-			}
+			const hashInput = [mod_id, mod_version, game_version || "", error_message, stack_trace].join("|");
+			const hashBytes = await crypto.subtle.digest("SHA-256", encoder.encode(hashInput));
+			const hash = Array.from(new Uint8Array(hashBytes)).map(b => b.toString(16).padStart(2, "0")).join("");
 
-			return new Response(JSON.stringify({ success: true }), {
+			const result = await env.DB.prepare(
+				`INSERT INTO mod_errors (hash, mod_id, mod_version, game_version, error_message, stack_trace, game_state, player_os, os_version, count, created_at)
+				 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
+				 ON CONFLICT(hash) DO UPDATE SET
+					 game_state = excluded.game_state,
+					 player_os  = excluded.player_os,
+					 os_version = excluded.os_version,
+					 created_at = excluded.created_at,
+					 count      = count + 1
+				 RETURNING count`
+			)
+				.bind(hash, mod_id, mod_version, game_version || null, error_message, stack_trace, game_state || null, player_os || null, os_version || null, created_at)
+				.first<number>("count") || 0;
+
+			return new Response(JSON.stringify({ success: true, count: result }), {
 				status: 200,
 				headers: { "Content-Type": "application/json" },
 			});
