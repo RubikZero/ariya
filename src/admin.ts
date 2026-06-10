@@ -164,7 +164,7 @@ async function testSubmit() {
 		game_version: "2.0",
 		error_message: "测试异常信息 — " + new Date().toISOString(),
 		stack_trace: "at GameLogic.update (GameLogic.cs:123)\\nat GameManager.run (GameManager.cs:456)",
-		game_state: "{\"game.scene\":\"CombatRoom\",\"game.in_run\":\"true\"}",
+		game_state: "{\\"game.scene\\":\\"CombatRoom\\",\\"game.in_run\\":\\"true\\"}",
 		player_os: navigator.platform || "Unknown",
 		os_version: navigator.userAgent || "Unknown",
 		created_at: Date.now()
