@@ -7,7 +7,7 @@ export default defineWorkersConfig({
 				wrangler: { configPath: "./wrangler.jsonc" },
 				miniflare: {
 					compatibilityFlags: ["nodejs_compat"],
-					compatibilityDate: "2026-03-10",
+					compatibilityDate: "2026-06-10",
 				},
 			},
 		},
