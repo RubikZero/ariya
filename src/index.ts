@@ -29,7 +29,7 @@ export default {
 			const adminKeyOk = env.ADMIN_KEY && token.length === env.ADMIN_KEY.length && (() => { let r=0; for(let i=0;i<token.length;i++) r|=token.charCodeAt(i)^env.ADMIN_KEY.charCodeAt(i); return r===0; })();
 			const sessionUser = token ? await verifySessionToken(token, env.HMAC_SECRET_KEY) : null;
 			const authed = !!(cfEmail || adminKeyOk || sessionUser);
-			return renderAdminPage(env, authed, sessionUser || token, request);
+			return renderAdminPage(env, authed, authed ? token : "", request);
 		}
 		if (url.pathname === "/admin/logs") {
 			const token = url.searchParams.get("token") || "";

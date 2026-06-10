@@ -231,7 +231,7 @@ async function login() {
   try {
     const resp = await fetch("/admin/login", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({username,password}) });
     const data = await resp.json();
-    if (resp.ok) { sessionStorage.setItem("ariya_token", data.token); location.reload(); }
+    if (resp.ok) { sessionStorage.setItem("ariya_token", data.token); location.href = "/admin?token=" + encodeURIComponent(data.token); }
     else { result.className = "result error"; result.textContent = data.error || "登录失败"; }
   } catch(e) { result.className = "result error"; result.textContent = "网络错误: " + e.message; }
 }
