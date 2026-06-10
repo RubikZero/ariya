@@ -17,7 +17,7 @@ export interface Env {
 	ADMIN_KEY?: string;
 }
 
-import { renderAdminPage, handleAdminLogs, handleVerify, isAdminAuthed } from "./admin.js";
+import { renderAdminPage, handleAdminLogs, handleRegisterAdmin, handleLogin, verifySessionToken } from "./admin.js";
 
 export default {
 	async fetch(request, env, ctx): Promise<Response> {
@@ -25,18 +25,29 @@ export default {
 
 		if (url.pathname === "/admin") {
 			const token = url.searchParams.get("token") || "";
-			return renderAdminPage(env, token);
+			const cfEmail = request.headers.get("Cf-Access-Authenticated-User-Email");
+			const adminKeyOk = env.ADMIN_KEY && token.length === env.ADMIN_KEY.length && (() => { let r=0; for(let i=0;i<token.length;i++) r|=token.charCodeAt(i)^env.ADMIN_KEY.charCodeAt(i); return r===0; })();
+			const sessionUser = token ? await verifySessionToken(token, env.HMAC_SECRET_KEY) : null;
+			const authed = !!(cfEmail || adminKeyOk || sessionUser);
+			return renderAdminPage(env, authed, sessionUser || token, request);
 		}
 		if (url.pathname === "/admin/logs") {
-			if (!isAdminAuthed(env, url.searchParams.get("token") || "")) {
-				return new Response("Unauthorized", { status: 401 });
+			const token = url.searchParams.get("token") || "";
+			const cfEmail = request.headers.get("Cf-Access-Authenticated-User-Email");
+			const adminKeyOk = env.ADMIN_KEY && token.length === env.ADMIN_KEY.length && (() => { let r=0; for(let i=0;i<token.length;i++) r|=token.charCodeAt(i)^env.ADMIN_KEY.charCodeAt(i); return r===0; })();
+			const sessionUser = token ? await verifySessionToken(token, env.HMAC_SECRET_KEY) : null;
+			if (!cfEmail && !adminKeyOk && !sessionUser) {
+				return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { "Content-Type": "application/json" } });
 			}
 			return handleAdminLogs(env);
 		}
-		if (url.pathname === "/admin/verify") {
-			if (request.method !== "POST") return new Response("Method Not Allowed", { status: 405 });
+		if (url.pathname === "/admin/login" && request.method === "POST") {
 			const body = await request.json() as any;
-			return handleVerify(env, body);
+			return handleLogin(env, body);
+		}
+		if (url.pathname === "/admin/register-admin" && request.method === "POST") {
+			const body = await request.json() as any;
+			return handleRegisterAdmin(env, body);
 		}
 
 		if (request.method !== "POST") {

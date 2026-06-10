@@ -8,6 +8,7 @@ import { describe, it, expect, beforeAll } from "vitest";
 import worker from "../src/index";
 
 const SCHEMA = `CREATE TABLE IF NOT EXISTS mod_errors (hash TEXT PRIMARY KEY, mod_id TEXT NOT NULL, mod_version TEXT NOT NULL, game_version TEXT, error_message TEXT NOT NULL, stack_trace TEXT NOT NULL, game_state TEXT NOT NULL, player_os TEXT NOT NULL, os_version TEXT NOT NULL, count INTEGER NOT NULL DEFAULT 1, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`;
+const ADMIN_SCHEMA = `CREATE TABLE IF NOT EXISTS admins (username TEXT PRIMARY KEY, password_hash TEXT NOT NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`;
 
 const IncomingRequest = Request<unknown, IncomingRequestCfProperties>;
 
@@ -43,6 +44,7 @@ describe("Ariya log endpoint", () => {
 	beforeAll(async () => {
 		hmacKey = (env as any).HMAC_SECRET_KEY || "test-secret";
 		await (env as any).DB.exec(SCHEMA);
+		await (env as any).DB.exec(ADMIN_SCHEMA);
 		payload = {
 			mod_id: "test-mod",
 			mod_version: "1.0.0",
@@ -111,47 +113,54 @@ describe("Ariya log endpoint", () => {
 		expect(json.count).toBe(1);
 	});
 
-	it("returns admin login page on GET /admin (no token)", async () => {
-		const request = new IncomingRequest("http://example.com/admin");
-		const ctx = createExecutionContext();
-		const response = await worker.fetch(request, env, ctx);
-		await waitOnExecutionContext(ctx);
-		expect(response.status).toBe(200);
-		const text = await response.text();
-		expect(text).toContain("管理面板验证");
-	});
+	it("admin auth flow: register, login, access dashboard, query logs", async () => {
+		// Register (no credentials → 400)
+		const r1 = await worker.fetch(new IncomingRequest("http://example.com/admin/register-admin", { method:"POST", body:"{}", headers:{"Content-Type":"application/json"} }), env, createExecutionContext());
+		expect(r1.status).toBe(400);
 
-	it("returns admin dashboard on GET /admin with valid token", async () => {
-		const adminKey = (env as any).ADMIN_KEY || "test-admin-key";
-		const request = new IncomingRequest("http://example.com/admin?token=" + encodeURIComponent(adminKey));
-		const ctx = createExecutionContext();
-		const response = await worker.fetch(request, env, ctx);
-		await waitOnExecutionContext(ctx);
-		expect(response.status).toBe(200);
-		const text = await response.text();
-		expect(text).toContain("生成 HMAC 密钥");
-	});
+		// Register (first admin → 200)
+		const r2 = await worker.fetch(new IncomingRequest("http://example.com/admin/register-admin", { method:"POST", body:JSON.stringify({username:"testadmin",password:"testpass123"}), headers:{"Content-Type":"application/json"} }), env, createExecutionContext());
+		expect(r2.status).toBe(200);
+		expect(await r2.json()).toHaveProperty("success", true);
 
-	it("rejects GET /admin/logs without valid token with 401", async () => {
-		const request = new IncomingRequest("http://example.com/admin/logs");
-		const ctx = createExecutionContext();
-		const response = await worker.fetch(request, env, ctx);
-		await waitOnExecutionContext(ctx);
-		expect(response.status).toBe(401);
-	});
+		// Register (second admin → 403)
+		const r3 = await worker.fetch(new IncomingRequest("http://example.com/admin/register-admin", { method:"POST", body:JSON.stringify({username:"admin2",password:"pass123456"}), headers:{"Content-Type":"application/json"} }), env, createExecutionContext());
+		expect(r3.status).toBe(403);
 
-	it("returns logs on GET /admin/logs with valid token", async () => {
-		const adminKey = (env as any).ADMIN_KEY || "test-admin-key";
-		// First submit a log so there's data to query
+		// Login (wrong password → 401)
+		const r4 = await worker.fetch(new IncomingRequest("http://example.com/admin/login", { method:"POST", body:JSON.stringify({username:"testadmin",password:"wrongpass"}), headers:{"Content-Type":"application/json"} }), env, createExecutionContext());
+		expect(r4.status).toBe(401);
+
+		// Login (correct password → 200 + token)
+		const r5 = await worker.fetch(new IncomingRequest("http://example.com/admin/login", { method:"POST", body:JSON.stringify({username:"testadmin",password:"testpass123"}), headers:{"Content-Type":"application/json"} }), env, createExecutionContext());
+		expect(r5.status).toBe(200);
+		const loginJson = await r5.json() as any;
+		expect(loginJson.success).toBe(true);
+		expect(loginJson.token).toBeDefined();
+		const token = loginJson.token;
+
+		// Admin page (no token → login page)
+		const r6 = await worker.fetch(new IncomingRequest("http://example.com/admin"), env, createExecutionContext());
+		expect(r6.status).toBe(200);
+		expect(await r6.text()).toContain("管理员登录");
+
+		// Admin page (with token → dashboard)
+		const r7 = await worker.fetch(new IncomingRequest("http://example.com/admin?token=" + encodeURIComponent(token)), env, createExecutionContext());
+		expect(r7.status).toBe(200);
+		expect(await r7.text()).toContain("生成 HMAC 密钥");
+
+		// Logs (no token → 401)
+		const r8 = await worker.fetch(new IncomingRequest("http://example.com/admin/logs"), env, createExecutionContext());
+		expect(r8.status).toBe(401);
+
+		// Submit a log
 		await sendValid(hmacKey, payload);
-		// Then query logs with admin token
-		const request = new IncomingRequest("http://example.com/admin/logs?token=" + encodeURIComponent(adminKey));
-		const ctx = createExecutionContext();
-		const response = await worker.fetch(request, env, ctx);
-		await waitOnExecutionContext(ctx);
-		expect(response.status).toBe(200);
-		const json = await response.json() as any;
-		expect(json.logs).toBeDefined();
-		expect(json.logs.length).toBeGreaterThan(0);
+
+		// Logs (with token → 200)
+		const r9 = await worker.fetch(new IncomingRequest("http://example.com/admin/logs?token=" + encodeURIComponent(token)), env, createExecutionContext());
+		expect(r9.status).toBe(200);
+		const logsJson = await r9.json() as any;
+		expect(logsJson.logs).toBeDefined();
+		expect(logsJson.logs.length).toBeGreaterThan(0);
 	});
 });
