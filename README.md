@@ -113,16 +113,7 @@ npx wrangler secret put HMAC_SECRET_KEY
 npx wrangler d1 migrations apply DB --remote
 ```
 
-### 4. 设置管理面板访问令牌（可选）
-
-```bash
-npx wrangler secret put ADMIN_KEY
-```
-
-推荐使用 [Cloudflare API Token](https://dash.cloudflare.com/profile/api-tokens) 作为访问令牌。
-不设置则管理面板不可用。
-
-### 5. 部署
+### 4. 部署
 
 ```bash
 npm run deploy
@@ -187,16 +178,34 @@ X-Mod-Signature: <HMAC-SHA256 Base64 签名>
 
 ## 管理面板
 
-管理面板需要设置 `ADMIN_KEY` 环境变量才能使用。
-部署后访问 `https://你的-worker.workers.dev/admin`，输入正确的 Token 即可登录。
+管理面板支持两种认证方式：
 
-支持以下功能：
+### 方式一：Cloudflare Access (推荐，无需额外配置)
+
+在 [Cloudflare Zero Trust](https://dash.cloudflare.com) 中为此 Worker 创建一个 Access 应用，
+Access 会在请求到达 Worker 之前完成登录验证。Worker 读取 `Cf-Access-Authenticated-User-Email`
+请求头确认用户已认证，自动显示管理面板。
+
+### 方式二：用户名 + 密码
+
+```bash
+# 部署后运行以下命令注册管理员（仅首次有效）
+curl -X POST https://你的-worker.workers.dev/admin/register-admin \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"your-password"}'
+
+# 之后在 /admin 页面用此用户名密码登录
+```
+
+密码使用 PBKDF2 加盐哈希存储，登录后返回 HMAC 签名的 session token（24 小时有效）。
+
+### 功能
 
 - **🔑 生成 HMAC 密钥** — 浏览器本地生成 256 位密钥，一键复制
 - **📤 测试提交** — 在浏览器中模拟 Mod 发送日志，验证端到端链路
-- **📋 最近提交** — 查看最近 50 条日志记录
+- **📋 最近提交** — 查看最近 50 条日志记录（含错误次数）
 
-> 建议使用 **[Cloudflare API Token](https://dash.cloudflare.com/profile/api-tokens)** 作为 `ADMIN_KEY`，你无需额外记住一个密码。
+> 两种方式可同时启用。Access 优先。
 
 ---
 

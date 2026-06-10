@@ -299,14 +299,6 @@ async function loadLogs() {
 	return new Response(html, { headers: { "Content-Type": "text/html; charset=utf-8" } });
 }
 
-function isAdminAuthed(env: Env, token: string): boolean {
-	if (!env.ADMIN_KEY) return false;
-	if (token.length !== env.ADMIN_KEY.length) return false;
-	let r = 0;
-	for (let i = 0; i < token.length; i++) r |= token.charCodeAt(i) ^ env.ADMIN_KEY.charCodeAt(i);
-	return r === 0;
-}
-
 export async function handleAdminLogs(env: Env): Promise<Response> {
 	try {
 		const result = await env.DB.prepare("SELECT hash, mod_id, mod_version, error_message, count, created_at FROM mod_errors ORDER BY created_at DESC LIMIT 50").all();
