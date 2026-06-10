@@ -113,7 +113,16 @@ npx wrangler secret put HMAC_SECRET_KEY
 npx wrangler d1 migrations apply DB --remote
 ```
 
-### 4. 部署
+### 4. 设置管理面板访问令牌（可选）
+
+```bash
+npx wrangler secret put ADMIN_KEY
+```
+
+推荐使用 [Cloudflare API Token](https://dash.cloudflare.com/profile/api-tokens) 作为访问令牌。
+不设置则管理面板不可用。
+
+### 5. 部署
 
 ```bash
 npm run deploy
@@ -178,11 +187,16 @@ X-Mod-Signature: <HMAC-SHA256 Base64 签名>
 
 ## 管理面板
 
-部署后访问 `/admin` 即可打开管理面板，支持以下功能：
+管理面板需要设置 `ADMIN_KEY` 环境变量才能使用。
+部署后访问 `https://你的-worker.workers.dev/admin`，输入正确的 Token 即可登录。
+
+支持以下功能：
 
 - **🔑 生成 HMAC 密钥** — 浏览器本地生成 256 位密钥，一键复制
 - **📤 测试提交** — 在浏览器中模拟 Mod 发送日志，验证端到端链路
 - **📋 最近提交** — 查看最近 50 条日志记录
+
+> 建议使用 **[Cloudflare API Token](https://dash.cloudflare.com/profile/api-tokens)** 作为 `ADMIN_KEY`，你无需额外记住一个密码。
 
 ---
 

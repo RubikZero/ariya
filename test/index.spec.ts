@@ -111,14 +111,47 @@ describe("Ariya log endpoint", () => {
 		expect(json.count).toBe(1);
 	});
 
-	it("returns admin page on GET /admin", async () => {
+	it("returns admin login page on GET /admin (no token)", async () => {
 		const request = new IncomingRequest("http://example.com/admin");
 		const ctx = createExecutionContext();
 		const response = await worker.fetch(request, env, ctx);
 		await waitOnExecutionContext(ctx);
 		expect(response.status).toBe(200);
 		const text = await response.text();
-		expect(text).toContain("Ariya");
-		expect(text).toContain("admin");
+		expect(text).toContain("管理面板验证");
+	});
+
+	it("returns admin dashboard on GET /admin with valid token", async () => {
+		const adminKey = (env as any).ADMIN_KEY || "test-admin-key";
+		const request = new IncomingRequest("http://example.com/admin?token=" + encodeURIComponent(adminKey));
+		const ctx = createExecutionContext();
+		const response = await worker.fetch(request, env, ctx);
+		await waitOnExecutionContext(ctx);
+		expect(response.status).toBe(200);
+		const text = await response.text();
+		expect(text).toContain("生成 HMAC 密钥");
+	});
+
+	it("rejects GET /admin/logs without valid token with 401", async () => {
+		const request = new IncomingRequest("http://example.com/admin/logs");
+		const ctx = createExecutionContext();
+		const response = await worker.fetch(request, env, ctx);
+		await waitOnExecutionContext(ctx);
+		expect(response.status).toBe(401);
+	});
+
+	it("returns logs on GET /admin/logs with valid token", async () => {
+		const adminKey = (env as any).ADMIN_KEY || "test-admin-key";
+		// First submit a log so there's data to query
+		await sendValid(hmacKey, payload);
+		// Then query logs with admin token
+		const request = new IncomingRequest("http://example.com/admin/logs?token=" + encodeURIComponent(adminKey));
+		const ctx = createExecutionContext();
+		const response = await worker.fetch(request, env, ctx);
+		await waitOnExecutionContext(ctx);
+		expect(response.status).toBe(200);
+		const json = await response.json() as any;
+		expect(json.logs).toBeDefined();
+		expect(json.logs.length).toBeGreaterThan(0);
 	});
 });
