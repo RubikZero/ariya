@@ -14,19 +14,29 @@ export interface Env {
 	DB: D1Database;
 	HMAC_SECRET_KEY: string;
 	TIMEOUT: number;
+	ADMIN_KEY?: string;
 }
 
-import { renderAdminPage, handleAdminLogs } from "./admin.js";
+import { renderAdminPage, handleAdminLogs, handleVerify, isAdminAuthed } from "./admin.js";
 
 export default {
 	async fetch(request, env, ctx): Promise<Response> {
 		const url = new URL(request.url);
 
 		if (url.pathname === "/admin") {
-			return renderAdminPage(!!env.HMAC_SECRET_KEY);
+			const token = url.searchParams.get("token") || "";
+			return renderAdminPage(env, token);
 		}
 		if (url.pathname === "/admin/logs") {
+			if (!isAdminAuthed(env, url.searchParams.get("token") || "")) {
+				return new Response("Unauthorized", { status: 401 });
+			}
 			return handleAdminLogs(env);
+		}
+		if (url.pathname === "/admin/verify") {
+			if (request.method !== "POST") return new Response("Method Not Allowed", { status: 405 });
+			const body = await request.json() as any;
+			return handleVerify(env, body);
 		}
 
 		if (request.method !== "POST") {
