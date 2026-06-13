@@ -477,7 +477,7 @@ async function loadBrowseData() {
     var data = await resp.json();
     if (!data.logs || !data.logs.length) { container.innerHTML = '<div class="empty-state"><p>' + s("admin.browse.empty") + '</p></div>'; return; }
     var cols = [s("admin.browse.col_time"), s("admin.browse.col_mod"), s("admin.browse.col_version"), s("admin.browse.col_game_version"), s("admin.browse.col_error"), s("admin.browse.col_stack"), s("admin.browse.col_state"), s("admin.browse.col_os"), s("admin.browse.col_os_ver"), s("admin.browse.col_count"), s("admin.browse.col_hash")];
-    var h = '<table id="browse-table" style="width:100%;font-size:0.75rem;table-layout:fixed;"><thead><tr>';
+    var h = '<table id="browse-table" style="width:auto;min-width:100%;font-size:0.75rem;table-layout:fixed;"><thead><tr>';
     for (var ci = 0; ci < cols.length; ci++) {
       h += '<th id="bc-' + ci + '">' + cols[ci] + '<div class="resizer"></div></th>';
     }
@@ -485,17 +485,17 @@ async function loadBrowseData() {
     for (var i = 0; i < data.logs.length; i++) {
       var log = data.logs[i];
       h += '<tr data-hash="'+htm(log.hash)+'" data-from="browse" class="log-row" style="cursor:pointer;">' +
-        '<td style="white-space:nowrap;">'+new Date(log.created_at).toLocaleString()+'</td>' +
-        '<td><span class="tag">'+htm(log.mod_id)+'</span></td>' +
-        '<td>'+htm(log.mod_version)+'</td>' +
-        '<td>'+(log.game_version ? htm(log.game_version) : '-')+'</td>' +
+        '<td style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="'+new Date(log.created_at).toLocaleString()+'">'+new Date(log.created_at).toLocaleString()+'</td>' +
+        '<td style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="'+htm(log.mod_id)+'">'+htm(log.mod_id)+'</td>' +
+        '<td style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="'+htm(log.mod_version)+'">'+htm(log.mod_version)+'</td>' +
+        '<td style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="'+(log.game_version || '-')+'">'+(log.game_version ? htm(log.game_version) : '-')+'</td>' +
         '<td style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="'+htm(log.error_message)+'">'+htm(log.error_message)+'</td>' +
         '<td style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="'+htm(log.stack_trace||'')+'">'+(log.stack_trace ? htm(log.stack_trace.substring(0,80)) : '-')+'</td>' +
         '<td style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="'+htm(log.game_state||'')+'">'+(log.game_state ? htm(log.game_state.substring(0,60)) : '-')+'</td>' +
-        '<td>'+htm(log.player_os||'-')+'</td>' +
-        '<td>'+htm(log.os_version||'-')+'</td>' +
-        '<td>'+log.count+'</td>' +
-        '<td style="font-family:monospace;font-size:0.625rem;color:#64748b;">'+htm(log.hash.substring(0,8))+'</td></tr>';
+        '<td style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="'+htm(log.player_os||'-')+'">'+htm(log.player_os||'-')+'</td>' +
+        '<td style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="'+htm(log.os_version||'-')+'">'+htm(log.os_version||'-')+'</td>' +
+        '<td style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+log.count+'</td>' +
+        '<td style="font-family:monospace;font-size:0.625rem;color:#64748b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="'+htm(log.hash)+'">'+htm(log.hash.substring(0,8))+'</td></tr>';
     }
     h += '</tbody></table><p style="color:#64748b;font-size:0.75rem;margin-top:0.5rem;">' + s("admin.browse.total").replace("{count}", data.logs.length) + '</p>';
     container.innerHTML = h;
