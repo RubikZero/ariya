@@ -1,3 +1,4 @@
+import type { Lang } from "./strings.js";
 import type { Env } from "./index.js";
 import { renderAdminPage, renderDetailPage } from "./admin-ui.js";
 
@@ -85,7 +86,7 @@ export async function handleAdminLogs(env: Env): Promise<Response> {
 	}
 }
 
-export async function handleLogDetail(env: Env, hash: string, token: string, lang: string = "zh-CN"): Promise<Response> {
+export async function handleLogDetail(env: Env, hash: string, token: string, lang: Lang = "zh-CN"): Promise<Response> {
 	try {
 		const log = await env.DB.prepare(
 			"SELECT hash, mod_id, mod_version, game_version, error_message, stack_trace, game_state, player_os, os_version, count, created_at FROM mod_errors WHERE hash = ?"
@@ -93,7 +94,7 @@ export async function handleLogDetail(env: Env, hash: string, token: string, lan
 		if (!log) {
 			return new Response("Not found", { status: 404 });
 		}
-		return new Response(renderDetailPage(log, token, "zh-CN"), {
+		return new Response(renderDetailPage(log, token, lang), {
 			headers: { "Content-Type": "text/html; charset=utf-8" },
 		});
 	} catch (e: any) {
