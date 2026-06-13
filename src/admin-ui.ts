@@ -1,8 +1,6 @@
 import type { Env } from "./index.js";
 import { t, langStrings, type Lang } from "./strings.js";
 
-const LANG = "zh-CN" as const;
-
 export const STYLE = `
 * { margin:0;padding:0;box-sizing:border-box; }
 body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; background:#0f172a; color:#e2e8f0; line-height:1.6; }
@@ -111,53 +109,55 @@ const DASHBOARD_PAGE = (lang: Lang) => `
   <button class="btn-primary" onclick="loadLogs()">${htm(t("admin.dashboard.logs.btn", lang))}</button>
 </div>`;
 
-export const GAME_STATE_LABELS: Record<string, string> = {
-	"loc.language": t("game_state.loc.language", LANG),
-	"game.scene": t("game_state.game.scene", LANG),
-	"game.in_run": t("game_state.game.in_run", LANG),
-	"game.seed": t("game_state.game.seed", LANG),
-	"game.ascension": t("game_state.game.ascension", LANG),
-	"game.act": t("game_state.game.act", LANG),
-	"game.act_name": t("game_state.game.act_name", LANG),
-	"game.floor": t("game_state.game.floor", LANG),
-	"game.mode": t("game_state.game.mode", LANG),
-	"game.room_type": t("game_state.game.room_type", LANG),
-	"game.event": t("game_state.game.event", LANG),
-	"game.characters": t("game_state.game.characters", LANG),
-	"game.player_count": t("game_state.game.player_count", LANG),
-	"combat.encounter": t("game_state.combat.encounter", LANG),
-	"combat.round": t("game_state.combat.round", LANG),
-	"combat.enemy_count": t("game_state.combat.enemy_count", LANG),
-	"combat.enemies": t("game_state.combat.enemies", LANG),
-	"combat.player_hp": t("game_state.combat.player_hp", LANG),
-	"collect.exception": t("game_state.collect.exception", LANG),
+const GAME_STATE_KEYS: Record<string, string> = {
+	"loc.language": "game_state.loc.language",
+	"game.scene": "game_state.game.scene",
+	"game.in_run": "game_state.game.in_run",
+	"game.seed": "game_state.game.seed",
+	"game.ascension": "game_state.game.ascension",
+	"game.act": "game_state.game.act",
+	"game.act_name": "game_state.game.act_name",
+	"game.floor": "game_state.game.floor",
+	"game.mode": "game_state.game.mode",
+	"game.room_type": "game_state.game.room_type",
+	"game.event": "game_state.game.event",
+	"game.characters": "game_state.game.characters",
+	"game.player_count": "game_state.game.player_count",
+	"combat.encounter": "game_state.combat.encounter",
+	"combat.round": "game_state.combat.round",
+	"combat.enemy_count": "game_state.combat.enemy_count",
+	"combat.enemies": "game_state.combat.enemies",
+	"combat.player_hp": "game_state.combat.player_hp",
+	"collect.exception": "game_state.collect.exception",
 };
 
-const SCENE_LABELS: Record<string, string> = {
-	"MainMenu": t("scene.MainMenu", LANG),
-	"LogoAnimation": t("scene.LogoAnimation", LANG),
-	"CombatRoom": t("scene.CombatRoom", LANG),
-	"MapRoom": t("scene.MapRoom", LANG),
-	"EventRoom": t("scene.EventRoom", LANG),
-	"RestSiteRoom": t("scene.RestSiteRoom", LANG),
-	"MerchantRoom": t("scene.MerchantRoom", LANG),
-	"TreasureRoom": t("scene.TreasureRoom", LANG),
-	"Run": t("scene.Run", LANG),
+const SCENE_KEYS: Record<string, string> = {
+	"MainMenu": "scene.MainMenu",
+	"LogoAnimation": "scene.LogoAnimation",
+	"CombatRoom": "scene.CombatRoom",
+	"MapRoom": "scene.MapRoom",
+	"EventRoom": "scene.EventRoom",
+	"RestSiteRoom": "scene.RestSiteRoom",
+	"MerchantRoom": "scene.MerchantRoom",
+	"TreasureRoom": "scene.TreasureRoom",
+	"Run": "scene.Run",
 };
 
 function htm(s: string): string {
 	return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
-function readableGameState(jsonStr: string): string {
+function readableGameState(jsonStr: string, lang: Lang): string {
 	try {
 		const data = JSON.parse(jsonStr);
 		const lines: string[] = [];
 		for (const [key, val] of Object.entries(data)) {
-			const label = GAME_STATE_LABELS[key] || key;
+			const labelKey = GAME_STATE_KEYS[key];
+			const label = labelKey ? t(labelKey, lang) : key;
 			let displayVal = String(val);
-			if (key === "game.scene" && SCENE_LABELS[displayVal]) {
-				displayVal = SCENE_LABELS[displayVal];
+			const sceneKey = SCENE_KEYS[displayVal];
+			if (key === "game.scene" && sceneKey) {
+				displayVal = t(sceneKey, lang);
 			}
 			lines.push(`<tr><td style="color:#94a3b8;white-space:nowrap;padding:0.25rem 0.5rem;font-size:0.8125rem;">${htm(label)}</td><td style="padding:0.25rem 0.5rem;font-size:0.8125rem;">${htm(displayVal)}</td></tr>`);
 		}
@@ -180,7 +180,7 @@ const DETAIL_STYLE = `
 
 function renderDetailPage(log: any, token: string, lang: Lang): string {
 	const time = new Date(log.created_at).toLocaleString();
-	const gameStateHtml = readableGameState(log.game_state);
+	const gameStateHtml = readableGameState(log.game_state, lang);
 	const stackLines = (log.stack_trace || "").split("\n").map((l: string) => htm(l)).join('</span><span class="stack-frame">');
 
 	return `<!DOCTYPE html>
