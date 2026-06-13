@@ -114,19 +114,11 @@ async function main() {
 	const dbId = dbJson.uuid || dbJson.result?.uuid;
 	console.log(`   ✅ 数据库 ID: ${dbId}`);
 
-	// Step 4: Update wrangler.jsonc
-	console.log("\n📝 更新 wrangler.jsonc 配置...");
-	const configPath = join(ROOT, "wrangler.jsonc");
-	let config = readFileSync(configPath, "utf-8");
-	config = config.replace('"database_id": "placeholder"', `"database_id": "${dbId}"`);
-	config = config.replace('"database_id": ""', `"database_id": "${dbId}"`);
-	if (!config.includes(dbId)) {
-		console.log("   ⚠️  未找到 placeholder database_id，请手动编辑 wrangler.jsonc");
-		console.log(`   database_id 应设置为: ${dbId}`);
-	} else {
-		writeFileSync(configPath, config);
-		console.log("   ✅ wrangler.jsonc 已更新");
-	}
+	// Step 4: Write database ID to .env (not tracked by git)
+	console.log("\n📝 写入数据库 ID 到 .env...");
+	const envPath = join(ROOT, ".env");
+	writeFileSync(envPath, `D1_DATABASE_ID=${dbId}\n`, { flag: "a" });
+	console.log("   ✅ .env 已更新 (D1_DATABASE_ID)");
 
 	// Step 5: Set secrets
 	console.log("\n🔐 设置 HMAC_SECRET_KEY...");

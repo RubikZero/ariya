@@ -79,23 +79,18 @@ npm run setup
 
 如果你希望分步操作，或者 `npm run setup` 因为网络等原因执行失败：
 
-### 1. 创建 D1 数据库
+### 1. 创建 D1 数据库并写入配置
 
 ```bash
 npx wrangler d1 create ariya-sts2-mod-logs
+# 复制输出的 database_id
+
+# 将 database_id 写入 .env（不会被提交到 git）
+echo D1_DATABASE_ID=你的-database-id >> .env
 ```
 
-将输出的 `database_id` 填入 `wrangler.jsonc`：
-
-```jsonc
-"d1_databases": [
-  {
-    "binding": "DB",
-    "database_name": "ariya-sts2-mod-logs",
-    "database_id": "你的-database-id"  // ← 替换这里
-  }
-]
-```
+`wrangler.jsonc` 中的 `"${D1_DATABASE_ID}"` 会自动读取此环境变量。
+在 GitHub Actions 中则通过 Secrets 传入（见 CI/CD 章节）。
 
 ### 2. 生成 HMAC 密钥并设为 Secret
 
