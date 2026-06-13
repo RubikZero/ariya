@@ -1,3 +1,7 @@
+[🇨🇳 中文](README.md) | [🇬🇧 English](README.en.md)
+
+---
+
 # Ariya
 
 > Slay the Spire 2 Mod 异常日志收集平台 · Cloudflare Workers 自建服务端
@@ -232,6 +236,7 @@ npm test
 |--------|------|
 | `CLOUDFLARE_API_TOKEN` | Cloudflare API 令牌（需有 Workers 和 D1 权限） |
 | `CLOUDFLARE_ACCOUNT_ID` | 你的 Cloudflare 账户 ID |
+| `D1_DATABASE_ID` | D1 数据库 ID（通过 `npx wrangler d1 create ariya-sts2-mod-logs` 获取） |
 | `HMAC_SECRET_KEY` | HMAC 密钥（应和本地开发用的 .dev.vars 不同） |
 
 获取 API 令牌：https://dash.cloudflare.com/profile/api-tokens
@@ -241,3 +246,7 @@ npm test
 ## 许可证
 
 [MIT](LICENSE)
+
+---
+
+[🇨🇳 中文](README.md) | [🇬🇧 English](README.en.md)
