@@ -85,7 +85,7 @@ export async function handleAdminLogs(env: Env): Promise<Response> {
 	}
 }
 
-export async function handleLogDetail(env: Env, hash: string, token: string): Promise<Response> {
+export async function handleLogDetail(env: Env, hash: string, token: string, lang: string = "zh-CN"): Promise<Response> {
 	try {
 		const log = await env.DB.prepare(
 			"SELECT hash, mod_id, mod_version, game_version, error_message, stack_trace, game_state, player_os, os_version, count, created_at FROM mod_errors WHERE hash = ?"

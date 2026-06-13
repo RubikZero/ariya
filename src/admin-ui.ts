@@ -247,9 +247,15 @@ function renderHtml(content: string, token: string, lang: Lang): Response {
 <style>${STYLE}</style>
 </head>
 <body>
-<header>
-  <h1>Ariya</h1>
-  <p>${htm(t("admin.page.subtitle", lang))}</p>
+<header style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;">
+  <div>
+    <h1>Ariya</h1>
+    <p>${htm(t("admin.page.subtitle", lang))}</p>
+  </div>
+  <select id="lang-select" onchange="switchLang(this.value)" style="background:#0f172a;color:#e2e8f0;border:1px solid #475569;border-radius:0.375rem;padding:0.375rem 0.75rem;font-size:0.8125rem;cursor:pointer;">
+    <option value="zh-CN" ${lang === "zh-CN" ? "selected" : ""}>中文</option>
+    <option value="en" ${lang === "en" ? "selected" : ""}>English</option>
+  </select>
 </header>
 <main>${content}</main>
 <script>
@@ -287,6 +293,19 @@ function generateKey() {
   document.getElementById("usage-key-local").textContent = key;
   document.getElementById("test-key").value = key;
   document.getElementById("key-usage").scrollIntoView({ behavior:"smooth", block:"nearest" });
+}
+function switchLang(lang) {
+  var u = new URL(window.location.href);
+  u.searchParams.set("lang", lang);
+  u.searchParams.delete("token");
+  sessionStorage.setItem("ariya_lang", lang);
+  location.href = u.toString();
+}
+var savedLang = sessionStorage.getItem("ariya_lang");
+if (savedLang && !window.location.search.includes("lang=")) {
+  var u = new URL(window.location.href);
+  u.searchParams.set("lang", savedLang);
+  location.href = u.toString();
 }
 function htm(s) { if (!s) return ""; return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
 function copyKey() {
@@ -330,7 +349,10 @@ async function testSubmit() {
 }
 function viewLog(hash) {
   var t = TOKEN || sessionStorage.getItem("ariya_token") || "";
-  location.href = "/admin/logs?hash=" + encodeURIComponent(hash) + "&token=" + encodeURIComponent(t);
+  var url = "/admin/logs?hash=" + encodeURIComponent(hash) + "&token=" + encodeURIComponent(t);
+  var lang = document.getElementById("lang-select");
+  if (lang) url += "&lang=" + encodeURIComponent(lang.value);
+  location.href = url;
 }
 document.addEventListener("DOMContentLoaded", function() {
   document.addEventListener("click", function(e) {
@@ -367,12 +389,13 @@ async function loadLogs() {
 	return new Response(html, { headers: { "Content-Type": "text/html; charset=utf-8" } });
 }
 
-export function renderAdminPage(env: Env, authed: boolean, token: string, request: Request): Response {
+export function renderAdminPage(env: Env, authed: boolean, token: string, request: Request, lang: string = "zh-CN"): Response {
 	const cfEmail = request.headers.get("Cf-Access-Authenticated-User-Email");
 	const isAuthed = authed || !!cfEmail;
 	const hasAnyAuth = !!env.ADMIN_KEY || !!cfEmail;
-	const content = !hasAnyAuth && !token ? DISABLED_PAGE(LANG) : (isAuthed ? DASHBOARD_PAGE(LANG) : LOGIN_PAGE(LANG));
-	return renderHtml(content, token, LANG);
+	const l = (lang === "en" || lang === "zh-CN") ? lang : "zh-CN" as Lang;
+	const content = !hasAnyAuth && !token ? DISABLED_PAGE(l) : (isAuthed ? DASHBOARD_PAGE(l) : LOGIN_PAGE(l));
+	return renderHtml(content, token, l);
 }
 
 export { renderDetailPage };

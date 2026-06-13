@@ -25,17 +25,19 @@ export default {
 
 		if (url.pathname === "/admin") {
 			const token = url.searchParams.get("token") || "";
+			const lang = url.searchParams.get("lang") || "zh-CN";
 			const authed = await isAuthed(request, env, token);
-			return renderAdminPage(env, authed, authed ? token : "", request);
+			return renderAdminPage(env, authed, authed ? token : "", request, lang);
 		}
 		if (url.pathname === "/admin/logs") {
 			const token = url.searchParams.get("token") || "";
 			const hash = url.searchParams.get("hash") || "";
+			const lang = url.searchParams.get("lang") || "zh-CN";
 			const authed = await isAuthed(request, env, token);
 			if (!authed) {
 				return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { "Content-Type": "application/json" } });
 			}
-			if (hash) return handleLogDetail(env, hash, token);
+			if (hash) return handleLogDetail(env, hash, token, lang);
 			return handleAdminLogs(env);
 		}
 		if (url.pathname === "/admin/login" && request.method === "POST") {
