@@ -433,6 +433,12 @@ function makeResizable(id) {
     for (var ci = 0; ci < cols.length && ci < widths.length; ci++) {
       cols[ci].style.width = widths[ci] + "px";
     }
+  } else {
+    var totalW = table.offsetWidth || 800;
+    var each = Math.max(40, Math.floor(totalW / cols.length));
+    for (var ci = 0; ci < cols.length; ci++) {
+      cols[ci].style.width = each + "px";
+    }
   }
   for (var ci = 0; ci < cols.length; ci++) {
     var resizer = cols[ci].querySelector(".resizer");
@@ -471,7 +477,7 @@ async function loadBrowseData() {
     var data = await resp.json();
     if (!data.logs || !data.logs.length) { container.innerHTML = '<div class="empty-state"><p>' + s("admin.browse.empty") + '</p></div>'; return; }
     var cols = [s("admin.browse.col_time"), s("admin.browse.col_mod"), s("admin.browse.col_version"), s("admin.browse.col_game_version"), s("admin.browse.col_error"), s("admin.browse.col_stack"), s("admin.browse.col_state"), s("admin.browse.col_os"), s("admin.browse.col_os_ver"), s("admin.browse.col_count"), s("admin.browse.col_hash")];
-    var h = '<table id="browse-table" style="width:auto;min-width:100%;font-size:0.75rem;"><thead><tr>';
+    var h = '<table id="browse-table" style="width:100%;font-size:0.75rem;table-layout:fixed;"><thead><tr>';
     for (var ci = 0; ci < cols.length; ci++) {
       h += '<th id="bc-' + ci + '">' + cols[ci] + '<div class="resizer"></div></th>';
     }
