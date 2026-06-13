@@ -383,9 +383,9 @@ async function testSubmit() {
     result.textContent = (resp.ok ? s("admin.dashboard.test.ok") + ": " : s("admin.dashboard.test.err") + ": " + resp.status + " ") + text;
   } catch(e) { result.className = "result error"; result.textContent = s("error.network").replace("{msg}", e.message); }
 }
-function viewLog(hash, from) {
+function viewLog(hash, from, lang) {
   var t = TOKEN || sessionStorage.getItem("ariya_token") || "";
-  var lang = (document.getElementById("lang-select") || {}).value || "";
+  if (!lang) lang = (document.getElementById("lang-select") || {}).value || (location.href.match(/[?&]lang=([^&]+)/) || [])[1] || "";
   var url = "/admin/logs?hash=" + encodeURIComponent(hash) + "&token=" + encodeURIComponent(t);
   if (lang) url += "&lang=" + encodeURIComponent(lang);
   if (from) url += "&from=" + encodeURIComponent(from);
@@ -397,7 +397,8 @@ document.addEventListener("DOMContentLoaded", function() {
     if (row) {
       var hash = row.getAttribute("data-hash");
       var from = row.getAttribute("data-from") || "";
-      viewLog(hash, from);
+      var lang = row.getAttribute("data-lang") || "";
+      viewLog(hash, from, lang);
     }
   });
 });
@@ -486,7 +487,8 @@ async function loadBrowseData() {
     h += '</tr></thead><tbody>';
     for (var i = 0; i < data.logs.length; i++) {
       var log = data.logs[i];
-      h += '<tr data-hash="'+htm(log.hash)+'" data-from="browse" class="log-row" style="cursor:pointer;">' +
+      var currentLang = (document.getElementById("lang-select") || {}).value || (location.href.match(/[?&]lang=([^&]+)/) || [])[1] || "";
+      h += '<tr data-hash="'+htm(log.hash)+'" data-lang="'+htm(currentLang)+'" data-from="browse" class="log-row" style="cursor:pointer;">' +
         '<td style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="'+new Date(log.created_at).toLocaleString()+'">'+new Date(log.created_at).toLocaleString()+'</td>' +
         '<td style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="'+htm(log.mod_id)+'">'+htm(log.mod_id)+'</td>' +
         '<td style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="'+htm(log.mod_version)+'">'+htm(log.mod_version)+'</td>' +
