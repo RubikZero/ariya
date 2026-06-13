@@ -108,6 +108,143 @@ const DASHBOARD_PAGE = `
 </div>
 `;
 
+const GAME_STATE_LABELS: Record<string, string> = {
+	"loc.language": "游戏语言",
+	"game.scene": "当前场景",
+	"game.in_run": "游戏中",
+	"game.seed": "种子",
+	"game.ascension": "进阶等级",
+	"game.act": "当前幕",
+	"game.act_name": "幕名称",
+	"game.floor": "楼层",
+	"game.mode": "游戏模式",
+	"game.room_type": "房间类型",
+	"game.event": "事件",
+	"game.characters": "角色",
+	"game.player_count": "玩家数",
+	"combat.encounter": "遭遇战",
+	"combat.round": "回合",
+	"combat.enemy_count": "敌人数",
+	"combat.enemies": "敌人",
+	"combat.player_hp": "玩家血量",
+	"collect.exception": "收集异常",
+};
+
+const SCENE_LABELS: Record<string, string> = {
+	"MainMenu": "主菜单",
+	"LogoAnimation": "Logo 动画",
+	"CombatRoom": "战斗房间",
+	"MapRoom": "地图房间",
+	"EventRoom": "事件房间",
+	"RestSiteRoom": "休息处",
+	"MerchantRoom": "商店",
+	"TreasureRoom": "宝箱房间",
+	"Run": "运行中",
+};
+
+function readableGameState(jsonStr: string): string {
+	try {
+		const data = JSON.parse(jsonStr);
+		const lines: string[] = [];
+		for (const [key, val] of Object.entries(data)) {
+			const label = GAME_STATE_LABELS[key] || key;
+			let displayVal = String(val);
+			if (key === "game.scene" && SCENE_LABELS[displayVal]) {
+				displayVal = SCENE_LABELS[displayVal];
+			}
+			lines.push(`<tr><td style="color:#94a3b8;white-space:nowrap;padding:0.25rem 0.5rem;font-size:0.8125rem;">${htm(label)}</td><td style="padding:0.25rem 0.5rem;font-size:0.8125rem;">${htm(displayVal)}</td></tr>`);
+		}
+		return `<table style="width:100%;border-collapse:collapse;"><tbody>${lines.join("")}</tbody></table>`;
+	} catch {
+		return `<p style="color:#94a3b8;font-size:0.8125rem;">${htm(jsonStr)}</p>`;
+	}
+}
+
+const DETAIL_STYLE = `
+.back-link { display:inline-flex;align-items:center;gap:0.375rem;color:#93c5fd;text-decoration:none;font-size:0.875rem;margin-bottom:1rem; }
+.back-link:hover { color:#bfdbfe; }
+.detail-grid { display:grid; grid-template-columns:auto 1fr; gap:0.5rem 1rem; font-size:0.875rem; }
+.detail-grid .label { color:#94a3b8; white-space:nowrap; }
+.detail-grid .value { color:#e2e8f0; word-break:break-all; }
+.stack-frame { display:block; padding:0.125rem 0; color:#94a3b8; }
+.stack-frame:first-child { color:#f87171; font-weight:600; }
+.stack-frame:first-child::before { content:"→ "; }
+`;
+
+function renderDetailPage(log: any, token: string): string {
+	const time = new Date(log.created_at).toLocaleString();
+	const gameStateHtml = readableGameState(log.game_state);
+	const stackLines = (log.stack_trace || "").split("\n").map((l: string) => htm(l)).join('</span><span class="stack-frame">');
+
+	return `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>日志详情 - Ariya</title>
+<style>
+* { margin:0;padding:0;box-sizing:border-box; }
+body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; background:#0f172a; color:#e2e8f0; line-height:1.6; }
+header { background:linear-gradient(135deg,#1e293b,#334155); padding:1.5rem 2rem; border-bottom:1px solid #475569; }
+header h1 { font-size:1.25rem; font-weight:700; color:#f8fafc; }
+main { max-width:900px; margin:2rem auto; padding:0 1rem; }
+.card { background:#1e293b; border:1px solid #334155; border-radius:0.5rem; padding:1.5rem; margin-bottom:1.5rem; }
+.card h2 { font-size:1rem; font-weight:600; margin-bottom:1rem; color:#f1f5f9; }
+pre { background:#0f172a; border:1px solid #334155; border-radius:0.375rem; padding:1rem; font-size:0.8125rem; font-family:"JetBrains Mono","Fira Code",monospace; overflow-x:auto; white-space:pre-wrap; word-break:break-all; line-height:1.5; }
+code { background:#0f172a; padding:0.125rem 0.375rem; border-radius:0.25rem; font-size:0.8125rem; font-family:monospace; }
+${DETAIL_STYLE}
+</style>
+</head>
+<body>
+<header>
+	<a href="/admin?token=${encodeURIComponent(token)}" class="back-link">← 返回管理面板</a>
+	<h1>日志详情</h1>
+</header>
+<main>
+	<div class="card">
+		<h2>基本信息</h2>
+		<div class="detail-grid">
+			<span class="label">时间</span><span class="value">${htm(time)}</span>
+			<span class="label">Mod</span><span class="value"><code>${htm(log.mod_id)}</code></span>
+			<span class="label">版本</span><span class="value">${htm(log.mod_version)}</span>
+			${log.game_version ? `<span class="label">游戏版本</span><span class="value">${htm(log.game_version)}</span>` : ""}
+			<span class="label">错误次数</span><span class="value">${log.count}</span>
+			<span class="label">操作系统</span><span class="value">${htm(log.player_os)}</span>
+			${log.os_version ? `<span class="label">系统版本</span><span class="value">${htm(log.os_version)}</span>` : ""}
+			<span class="label">Hash</span><span class="value" style="font-family:monospace;font-size:0.75rem;color:#64748b;">${htm(log.hash)}</span>
+		</div>
+	</div>
+
+	<div class="card">
+		<h2>异常信息</h2>
+		<pre><span class="stack-frame">${stackLines}</span></pre>
+	</div>
+
+	<div class="card">
+		<h2>游戏状态</h2>
+		${gameStateHtml}
+	</div>
+</main>
+</body>
+</html>`;
+}
+
+export async function handleLogDetail(env: Env, hash: string, token: string): Promise<Response> {
+	try {
+		const log = await env.DB.prepare(
+			"SELECT hash, mod_id, mod_version, game_version, error_message, stack_trace, game_state, player_os, os_version, count, created_at FROM mod_errors WHERE hash = ?"
+		).bind(hash).first();
+		if (!log) {
+			return new Response("Not found", { status: 404 });
+		}
+		return new Response(renderDetailPage(log, token), {
+			headers: { "Content-Type": "text/html; charset=utf-8" },
+		});
+	} catch (e: any) {
+		return new Response(JSON.stringify({ error: e.message }), { status: 500 });
+	}
+}
+
 function htm(s: string): string {
 	return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
 }
@@ -288,9 +425,15 @@ async function loadLogs() {
     if (!data.logs || !data.logs.length) { container.innerHTML = '<div class="empty-state"><p>暂无日志</p></div>'; return; }
     let html = '<table><thead><tr><th>时间</th><th>Mod</th><th>版本</th><th>异常</th><th>次数</th></tr></thead><tbody>';
     for (const log of data.logs) {
-      html += '<tr><td style="white-space:nowrap;font-size:0.75rem;color:#94a3b8;">'+new Date(log.created_at).toLocaleString()+'</td><td><span class="tag">'+htm(log.mod_id)+'</span></td><td>'+htm(log.mod_version)+'</td><td style="max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="'+htm(log.error_message)+'">'+htm(log.error_message)+'</td><td>'+log.count+'</td></tr>';
+      const detailUrl = "/admin/logs?hash=" + encodeURIComponent(log.hash) + "&token=" + encodeURIComponent(token);
+      html += '<tr onclick="location.href=\''+detailUrl+'\'" style="cursor:pointer;">' +
+        '<td style="white-space:nowrap;font-size:0.75rem;color:#94a3b8;">'+new Date(log.created_at).toLocaleString()+'</td>' +
+        '<td><span class="tag">'+htm(log.mod_id)+'</span></td>' +
+        '<td>'+htm(log.mod_version)+'</td>' +
+        '<td style="max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="'+htm(log.error_message)+'">'+htm(log.error_message)+'</td>' +
+        '<td>'+log.count+'</td></tr>';
     }
-    html += '</tbody></table><p style="color:#64748b;font-size:0.75rem;margin-top:0.5rem;">共 '+data.logs.length+' 条</p>';
+    html += '</tbody></table><p style="color:#64748b;font-size:0.75rem;margin-top:0.5rem;">共 '+data.logs.length+' 条记录。点击行查看详情。</p>';
     container.innerHTML = html;
   } catch(e) { container.innerHTML = '<div class="result error">加载失败: '+e.message+'</div>'; }
 }

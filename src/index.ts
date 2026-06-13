@@ -5,8 +5,19 @@ export interface Env {
 	ADMIN_KEY?: string;
 }
 
-import { renderAdminPage, handleAdminLogs, handleRegisterAdmin, handleLogin, verifySessionToken } from "./admin.js";
+import { renderAdminPage, handleAdminLogs, handleLogDetail, handleRegisterAdmin, handleLogin, verifySessionToken } from "./admin.js";
 import { handleLogSubmission } from "./logs.js";
+
+async function isAuthed(request: Request, env: Env, token: string): Promise<boolean> {
+	if (request.headers.get("Cf-Access-Authenticated-User-Email")) return true;
+	if (env.ADMIN_KEY && token.length === env.ADMIN_KEY.length) {
+		let r = 0;
+		for (let i = 0; i < token.length; i++) r |= token.charCodeAt(i) ^ env.ADMIN_KEY.charCodeAt(i);
+		if (r === 0) return true;
+	}
+	const sessionUser = token ? await verifySessionToken(token, env.HMAC_SECRET_KEY) : null;
+	return !!sessionUser;
+}
 
 export default {
 	async fetch(request, env, ctx): Promise<Response> {
@@ -14,20 +25,17 @@ export default {
 
 		if (url.pathname === "/admin") {
 			const token = url.searchParams.get("token") || "";
-			const cfEmail = request.headers.get("Cf-Access-Authenticated-User-Email");
-			const adminKeyOk = env.ADMIN_KEY && token.length === env.ADMIN_KEY.length && (() => { let r=0; for(let i=0;i<token.length;i++) r|=token.charCodeAt(i)^env.ADMIN_KEY.charCodeAt(i); return r===0; })();
-			const sessionUser = token ? await verifySessionToken(token, env.HMAC_SECRET_KEY) : null;
-			const authed = !!(cfEmail || adminKeyOk || sessionUser);
+			const authed = await isAuthed(request, env, token);
 			return renderAdminPage(env, authed, authed ? token : "", request);
 		}
 		if (url.pathname === "/admin/logs") {
 			const token = url.searchParams.get("token") || "";
-			const cfEmail = request.headers.get("Cf-Access-Authenticated-User-Email");
-			const adminKeyOk = env.ADMIN_KEY && token.length === env.ADMIN_KEY.length && (() => { let r=0; for(let i=0;i<token.length;i++) r|=token.charCodeAt(i)^env.ADMIN_KEY.charCodeAt(i); return r===0; })();
-			const sessionUser = token ? await verifySessionToken(token, env.HMAC_SECRET_KEY) : null;
-			if (!cfEmail && !adminKeyOk && !sessionUser) {
+			const hash = url.searchParams.get("hash") || "";
+			const authed = await isAuthed(request, env, token);
+			if (!authed) {
 				return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { "Content-Type": "application/json" } });
 			}
+			if (hash) return handleLogDetail(env, hash, token);
 			return handleAdminLogs(env);
 		}
 		if (url.pathname === "/admin/login" && request.method === "POST") {
