@@ -271,7 +271,10 @@ function renderHtml(content: string, token: string, lang: Lang, authed: boolean 
 	const tokenJs = token ? JSON.stringify(token) : "null";
 	const ls = langStrings(lang);
 	const langJs = JSON.stringify(ls);
-	const mainContent = authed ? `<div class="layout">${sidebarHtml(lang, token, page)}<main class="content">${content}</main></div>` : `<main style="max-width:480px;margin:4rem auto;padding:0 1rem;">${content}</main>`;
+	const langOpts = LANGUAGES.map(l => `<option value="${l.code}" ${lang === l.code ? "selected" : ""}>${htm(l.name)}</option>`).join("");
+	const mainContent = authed
+		? `<div class="layout">${sidebarHtml(lang, token, page)}<main class="content">${content}</main></div>`
+		: `<div style="position:absolute;top:1rem;right:1rem;"><select onchange="switchLang(this.value)" style="background:#0f172a;color:#e2e8f0;border:1px solid #475569;border-radius:0.375rem;padding:0.375rem 0.75rem;font-size:0.8125rem;cursor:pointer;">${langOpts}</select></div><main style="max-width:480px;margin:4rem auto;padding:0 1rem;">${content}</main>`;
 	const html = `<!DOCTYPE html>
 <html lang="${lang}">
 <head>
@@ -377,17 +380,22 @@ async function testSubmit() {
     result.textContent = (resp.ok ? s("admin.dashboard.test.ok") + ": " : s("admin.dashboard.test.err") + ": " + resp.status + " ") + text;
   } catch(e) { result.className = "result error"; result.textContent = s("error.network").replace("{msg}", e.message); }
 }
-function viewLog(hash) {
+function viewLog(hash, from) {
   var t = TOKEN || sessionStorage.getItem("ariya_token") || "";
+  var lang = (document.getElementById("lang-select") || {}).value || "";
   var url = "/admin/logs?hash=" + encodeURIComponent(hash) + "&token=" + encodeURIComponent(t);
-  var lang = document.getElementById("lang-select");
-  if (lang) url += "&lang=" + encodeURIComponent(lang.value);
+  if (lang) url += "&lang=" + encodeURIComponent(lang);
+  if (from) url += "&from=" + encodeURIComponent(from);
   location.href = url;
 }
 document.addEventListener("DOMContentLoaded", function() {
   document.addEventListener("click", function(e) {
     var row = e.target.closest(".log-row");
-    if (row) viewLog(row.getAttribute("data-hash"));
+    if (row) {
+      var hash = row.getAttribute("data-hash");
+      var from = row.getAttribute("data-from") || "";
+      viewLog(hash, from);
+    }
   });
 });
 
@@ -426,9 +434,7 @@ async function loadBrowseData() {
     var h = '<table style="width:100%;font-size:0.75rem;"><thead><tr><th>' + s("admin.browse.col_time") + '</th><th>' + s("admin.browse.col_mod") + '</th><th>' + s("admin.browse.col_version") + '</th><th>' + s("admin.browse.col_game_version") + '</th><th>' + s("admin.browse.col_error") + '</th><th>' + s("admin.browse.col_stack") + '</th><th>' + s("admin.browse.col_state") + '</th><th>' + s("admin.browse.col_os") + '</th><th>' + s("admin.browse.col_os_ver") + '</th><th>' + s("admin.browse.col_count") + '</th><th>' + s("admin.browse.col_hash") + '</th></tr></thead><tbody>';
     for (var i = 0; i < data.logs.length; i++) {
       var log = data.logs[i];
-      var t = TOKEN || sessionStorage.getItem("ariya_token") || "";
-      var detailUrl = "/admin/logs?hash=" + encodeURIComponent(log.hash) + "&token=" + encodeURIComponent(t) + "&from=browse";
-      h += '<tr onclick="location.href=\'' + detailUrl + '\'" style="cursor:pointer;">' +
+      h += '<tr data-hash="'+htm(log.hash)+'" data-from="browse" class="log-row" style="cursor:pointer;">' +
         '<td style="white-space:nowrap;">'+new Date(log.created_at).toLocaleString()+'</td>' +
         '<td><span class="tag">'+htm(log.mod_id)+'</span></td>' +
         '<td>'+htm(log.mod_version)+'</td>' +
