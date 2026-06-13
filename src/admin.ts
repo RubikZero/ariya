@@ -1,6 +1,6 @@
 import type { Lang } from "./strings.js";
 import type { Env } from "./index.js";
-import { renderAdminPage, renderDetailPage } from "./admin-ui.js";
+import { renderAdminPage, renderDetailPage, renderBrowsePage } from "./admin-ui.js";
 
 async function hmacSign(keyBytes: Uint8Array, data: Uint8Array): Promise<Uint8Array> {
 	const key = await crypto.subtle.importKey("raw", keyBytes, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
@@ -86,7 +86,16 @@ export async function handleAdminLogs(env: Env): Promise<Response> {
 	}
 }
 
-export async function handleLogDetail(env: Env, hash: string, token: string, lang: Lang = "zh-CN"): Promise<Response> {
+export async function handleBrowseLogs(env: Env): Promise<Response> {
+	try {
+		const result = await env.DB.prepare("SELECT hash, mod_id, mod_version, game_version, error_message, stack_trace, game_state, player_os, os_version, count, created_at FROM mod_errors ORDER BY created_at DESC LIMIT 100").all();
+		return new Response(JSON.stringify({ logs: result.results }), { headers: { "Content-Type": "application/json" } });
+	} catch (e: any) {
+		return new Response(JSON.stringify({ error: e.message }), { status: 500 });
+	}
+}
+
+export async function handleLogDetail(env: Env, hash: string, token: string, lang: Lang = "zh-CN", from?: string): Promise<Response> {
 	try {
 		const log = await env.DB.prepare(
 			"SELECT hash, mod_id, mod_version, game_version, error_message, stack_trace, game_state, player_os, os_version, count, created_at FROM mod_errors WHERE hash = ?"
@@ -94,7 +103,7 @@ export async function handleLogDetail(env: Env, hash: string, token: string, lan
 		if (!log) {
 			return new Response("Not found", { status: 404 });
 		}
-		return new Response(renderDetailPage(log, token, lang), {
+		return new Response(renderDetailPage(log, token, lang, from), {
 			headers: { "Content-Type": "text/html; charset=utf-8" },
 		});
 	} catch (e: any) {
@@ -102,4 +111,4 @@ export async function handleLogDetail(env: Env, hash: string, token: string, lan
 	}
 }
 
-export { renderAdminPage };
+export { renderAdminPage, renderBrowsePage };

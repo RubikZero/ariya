@@ -1,4 +1,8 @@
 {
+  "$meta": {
+    "language_name": "English"
+  },
+
   "admin.page.title": "Ariya - Admin Panel",
   "admin.page.subtitle": "Slay the Spire 2 Mod Log Collector · Admin Panel",
 
@@ -59,8 +63,29 @@
   "admin.dashboard.logs.col_count": "Count",
   "admin.dashboard.logs.total": "{count} records. Click a row to view details.",
 
+  "admin.nav.dashboard": "Dashboard",
+  "admin.nav.browse": "Log Browser",
+
+  "admin.browse.title": "Log Browser",
+  "admin.browse.loading": "Loading...",
+  "admin.browse.empty": "No log records",
+  "admin.browse.unauthorized": "Unauthorized. Please refresh and log in again.",
+  "admin.browse.col_time": "Time",
+  "admin.browse.col_mod": "Mod",
+  "admin.browse.col_version": "Mod Version",
+  "admin.browse.col_game_version": "Game Version",
+  "admin.browse.col_error": "Error Message",
+  "admin.browse.col_stack": "Stack Trace",
+  "admin.browse.col_state": "Game State",
+  "admin.browse.col_os": "OS",
+  "admin.browse.col_os_ver": "OS Version",
+  "admin.browse.col_count": "Count",
+  "admin.browse.col_hash": "Hash",
+  "admin.browse.total": "{count} records. Click a row to view details.",
+
   "detail.page.title": "Log Details - Ariya",
   "detail.back": "Back to admin panel",
+  "detail.back_browse": "Back to log browser",
   "detail.page.heading": "Log Details",
   "detail.basic_info": "Basic Info",
   "detail.time": "Time",

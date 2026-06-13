@@ -1,13 +1,13 @@
 import type { Env } from "./index.js";
-import { t, langStrings, type Lang } from "./strings.js";
+import { t, langStrings, LANGUAGES, type Lang } from "./strings.js";
 
 export const STYLE = `
 * { margin:0;padding:0;box-sizing:border-box; }
 body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; background:#0f172a; color:#e2e8f0; line-height:1.6; }
-header { background:linear-gradient(135deg,#1e293b,#334155); padding:2rem; border-bottom:1px solid #475569; }
-header h1 { font-size:1.5rem; font-weight:700; color:#f8fafc; }
-header p { font-size:0.875rem; color:#94a3b8; margin-top:0.25rem; }
-main { max-width:800px; margin:2rem auto; padding:0 1rem; }
+header { background:linear-gradient(135deg,#1e293b,#334155); padding:1rem 1.5rem; border-bottom:1px solid #475569; }
+header h1 { font-size:1.25rem; font-weight:700; color:#f8fafc; }
+header p { font-size:0.8125rem; color:#94a3b8; margin-top:0.125rem; }
+.layout { display:flex; gap:0; min-height:calc(100vh - 73px); }
 .card { background:#1e293b; border:1px solid #334155; border-radius:0.5rem; padding:1.5rem; margin-bottom:1.5rem; }
 .card h2 { font-size:1.125rem; font-weight:600; margin-bottom:1rem; color:#f1f5f9; }
 label { display:block; font-size:0.875rem; font-weight:500; color:#cbd5e1; margin-bottom:0.375rem; }
@@ -35,6 +35,19 @@ tr:hover td { background:rgba(51,65,85,0.5); }
 .empty-state { text-align:center; padding:2rem; color:#64748b; }
 .empty-state p { font-size:0.875rem; }
 .tag { display:inline-block; padding:0.125rem 0.375rem; border-radius:0.25rem; font-size:0.6875rem; background:#334155; color:#94a3b8; margin-right:0.25rem; }
+.sidebar { width:200px; min-width:200px; background:#1e293b; border-right:1px solid #334155; padding:1rem; display:flex; flex-direction:column; gap:0.25rem; }
+.sidebar.collapsed { width:48px; min-width:48px; }
+.sidebar .nav-item { display:flex; align-items:center; gap:0.5rem; padding:0.5rem; border-radius:0.375rem; color:#94a3b8; text-decoration:none; font-size:0.875rem; cursor:pointer; }
+.sidebar .nav-item:hover { background:#334155; color:#e2e8f0; }
+.sidebar .nav-item.active { background:#3b82f6; color:#fff; }
+.sidebar .nav-icon { font-size:1rem; width:1.25rem; text-align:center; flex-shrink:0; }
+.sidebar .nav-label { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.sidebar.collapsed .nav-label { display:none; }
+.sidebar .toggle-btn { background:none; border:none; color:#64748b; cursor:pointer; font-size:1rem; padding:0.25rem; border-radius:0.25rem; margin-bottom:0.5rem; text-align:left; }
+.sidebar .toggle-btn:hover { background:#334155; color:#e2e8f0; }
+.sidebar .lang-select { margin-top:auto; background:#0f172a; color:#e2e8f0; border:1px solid #475569; border-radius:0.375rem; padding:0.375rem 0.5rem; font-size:0.8125rem; cursor:pointer; }
+.sidebar.collapsed .lang-select { display:none; }
+.content { flex:1; padding:1.5rem; overflow-x:auto; }
 `;
 
 const DISABLED_PAGE = (lang: Lang) => `
@@ -178,7 +191,7 @@ const DETAIL_STYLE = `
 .stack-frame:first-child::before { content:"\u2192 "; }
 `;
 
-function renderDetailPage(log: any, token: string, lang: Lang): string {
+function renderDetailPage(log: any, token: string, lang: Lang, from?: string): string {
 	const time = new Date(log.created_at).toLocaleString();
 	const gameStateHtml = readableGameState(log.game_state, lang);
 	const stackLines = (log.stack_trace || "").split("\n").map((l: string) => htm(l)).join('</span><span class="stack-frame">');
@@ -205,7 +218,7 @@ ${DETAIL_STYLE}
 <body>
 <header style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;">
   <div>
-    <a href="/admin?token=${encodeURIComponent(token)}&lang=${lang}" class="back-link">\u2190 ${htm(t("detail.back", lang))}</a>
+    <a href="/${from === "browse" ? "admin/browse" : "admin"}?token=${encodeURIComponent(token)}&lang=${lang}" class="back-link">\u2190 ${htm(t(from === "browse" ? "detail.back_browse" : "detail.back", lang))}</a>
     <h1>${htm(t("detail.page.heading", lang))}</h1>
   </div>
   <select onchange="var q=location.search;if(q.match(/lang=[^&]+/)){location.search=q.replace(/lang=[^&]+/,'lang='+this.value)}else{location.search=q+(q?'&':'?')+'lang='+this.value}" style="background:#0f172a;color:#e2e8f0;border:1px solid #475569;border-radius:0.375rem;padding:0.375rem 0.75rem;font-size:0.8125rem;cursor:pointer;">
@@ -240,10 +253,25 @@ ${DETAIL_STYLE}
 </html>`;
 }
 
-function renderHtml(content: string, token: string, lang: Lang): Response {
+function sidebarHtml(lang: Lang, token: string, page: string): string {
+	const langOpts = LANGUAGES.map(l => `<option value="${l.code}" ${lang === l.code ? "selected" : ""}>${htm(l.name)}</option>`).join("");
+	return `<div class="sidebar" id="sidebar">
+  <button class="toggle-btn" onclick="toggleSidebar()">\u2630</button>
+  <a href="/admin?token=${encodeURIComponent(token)}&lang=${lang}" class="nav-item ${page === "dashboard" ? "active" : ""}">
+    <span class="nav-icon">\u2302</span><span class="nav-label">${htm(t("admin.nav.dashboard", lang))}</span>
+  </a>
+  <a href="/admin/browse?token=${encodeURIComponent(token)}&lang=${lang}" class="nav-item ${page === "browse" ? "active" : ""}">
+    <span class="nav-icon">\u2637</span><span class="nav-label">${htm(t("admin.nav.browse", lang))}</span>
+  </a>
+  <select class="lang-select" onchange="switchLang(this.value)">${langOpts}</select>
+</div>`;
+}
+
+function renderHtml(content: string, token: string, lang: Lang, authed: boolean = false, page: string = ""): Response {
 	const tokenJs = token ? JSON.stringify(token) : "null";
 	const ls = langStrings(lang);
 	const langJs = JSON.stringify(ls);
+	const mainContent = authed ? `<div class="layout">${sidebarHtml(lang, token, page)}<main class="content">${content}</main></div>` : `<main style="max-width:480px;margin:4rem auto;padding:0 1rem;">${content}</main>`;
 	const html = `<!DOCTYPE html>
 <html lang="${lang}">
 <head>
@@ -253,21 +281,18 @@ function renderHtml(content: string, token: string, lang: Lang): Response {
 <style>${STYLE}</style>
 </head>
 <body>
-<header style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;">
+<header>
   <div>
     <h1>Ariya</h1>
     <p>${htm(t("admin.page.subtitle", lang))}</p>
   </div>
-  <select id="lang-select" onchange="switchLang(this.value)" style="background:#0f172a;color:#e2e8f0;border:1px solid #475569;border-radius:0.375rem;padding:0.375rem 0.75rem;font-size:0.8125rem;cursor:pointer;">
-    <option value="zh-CN" ${lang === "zh-CN" ? "selected" : ""}>中文</option>
-    <option value="en" ${lang === "en" ? "selected" : ""}>English</option>
-  </select>
 </header>
-<main>${content}</main>
+${mainContent}
 <script>
 const TOKEN = ${tokenJs};
 const LANG = ${langJs};
 function s(key) { return LANG[key] || key; }
+function toggleSidebar() { document.getElementById("sidebar").classList.toggle("collapsed"); }
 document.addEventListener("DOMContentLoaded", () => {
   const urlInput = document.getElementById("test-url");
   if (urlInput && !urlInput.value) urlInput.value = window.location.origin;
@@ -388,19 +413,65 @@ async function loadLogs() {
     container.innerHTML = h;
   } catch(e) { container.innerHTML = '<div class="result error">' + s("error.network").replace("{msg}", e.message) + '</div>'; }
 }
+async function loadBrowseData() {
+  var container = document.getElementById("browse-container");
+  if (!container) return;
+  container.innerHTML = '<div class="empty-state"><p>' + s("admin.browse.loading") + '</p></div>';
+  var token = TOKEN || sessionStorage.getItem("ariya_token") || "";
+  try {
+    var resp = await fetch("/admin/browse?token="+encodeURIComponent(token), { method:"POST" });
+    if (resp.status === 401) { container.innerHTML = '<div class="result error">' + s("admin.browse.unauthorized") + '</div>'; return; }
+    var data = await resp.json();
+    if (!data.logs || !data.logs.length) { container.innerHTML = '<div class="empty-state"><p>' + s("admin.browse.empty") + '</p></div>'; return; }
+    var h = '<table style="width:100%;font-size:0.75rem;"><thead><tr><th>' + s("admin.browse.col_time") + '</th><th>' + s("admin.browse.col_mod") + '</th><th>' + s("admin.browse.col_version") + '</th><th>' + s("admin.browse.col_game_version") + '</th><th>' + s("admin.browse.col_error") + '</th><th>' + s("admin.browse.col_stack") + '</th><th>' + s("admin.browse.col_state") + '</th><th>' + s("admin.browse.col_os") + '</th><th>' + s("admin.browse.col_os_ver") + '</th><th>' + s("admin.browse.col_count") + '</th><th>' + s("admin.browse.col_hash") + '</th></tr></thead><tbody>';
+    for (var i = 0; i < data.logs.length; i++) {
+      var log = data.logs[i];
+      var t = TOKEN || sessionStorage.getItem("ariya_token") || "";
+      var detailUrl = "/admin/logs?hash=" + encodeURIComponent(log.hash) + "&token=" + encodeURIComponent(t) + "&from=browse";
+      h += '<tr onclick="location.href=\'' + detailUrl + '\'" style="cursor:pointer;">' +
+        '<td style="white-space:nowrap;">'+new Date(log.created_at).toLocaleString()+'</td>' +
+        '<td><span class="tag">'+htm(log.mod_id)+'</span></td>' +
+        '<td>'+htm(log.mod_version)+'</td>' +
+        '<td>'+(log.game_version ? htm(log.game_version) : '-')+'</td>' +
+        '<td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="'+htm(log.error_message)+'">'+htm(log.error_message)+'</td>' +
+        '<td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="'+htm(log.stack_trace||'')+'">'+(log.stack_trace ? htm(log.stack_trace.substring(0,80)) : '-')+'</td>' +
+        '<td style="max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="'+htm(log.game_state||'')+'">'+(log.game_state ? htm(log.game_state.substring(0,60)) : '-')+'</td>' +
+        '<td>'+htm(log.player_os||'-')+'</td>' +
+        '<td>'+htm(log.os_version||'-')+'</td>' +
+        '<td>'+log.count+'</td>' +
+        '<td style="font-family:monospace;font-size:0.625rem;color:#64748b;">'+htm(log.hash.substring(0,8))+'</td></tr>';
+    }
+    h += '</tbody></table><p style="color:#64748b;font-size:0.75rem;margin-top:0.5rem;">' + s("admin.browse.total").replace("{count}", data.logs.length) + '</p>';
+    container.innerHTML = h;
+  } catch(e) { container.innerHTML = '<div class="result error">' + s("error.network").replace("{msg}", e.message) + '</div>'; }
+}
+document.addEventListener("DOMContentLoaded", function() {
+  if (document.getElementById("browse-container")) loadBrowseData();
+});
 </script>
 </body>
 </html>`;
 	return new Response(html, { headers: { "Content-Type": "text/html; charset=utf-8" } });
 }
 
+function validLang(lang: string): Lang {
+	return LANGUAGES.some(l => l.code === lang) ? lang as Lang : "zh-CN" as Lang;
+}
+
 export function renderAdminPage(env: Env, authed: boolean, token: string, request: Request, lang: string = "zh-CN"): Response {
 	const cfEmail = request.headers.get("Cf-Access-Authenticated-User-Email");
 	const isAuthed = authed || !!cfEmail;
 	const hasAnyAuth = !!env.ADMIN_KEY || !!cfEmail;
-	const l = (lang === "en" || lang === "zh-CN") ? lang : "zh-CN" as Lang;
+	const l = validLang(lang);
 	const content = !hasAnyAuth && !token ? DISABLED_PAGE(l) : (isAuthed ? DASHBOARD_PAGE(l) : LOGIN_PAGE(l));
-	return renderHtml(content, token, l);
+	return renderHtml(content, token, l, isAuthed, "dashboard");
+}
+
+export function renderBrowsePage(token: string, lang: string = "zh-CN"): Response {
+	const l = validLang(lang);
+	const content = `<div class="card"><h2>${htm(t("admin.browse.title", l))}</h2>
+<div id="browse-container"><div class="empty-state"><p>${htm(t("admin.browse.loading", l))}</p></div></div></div>`;
+	return renderHtml(content, token, l, true, "browse");
 }
 
 export { renderDetailPage };

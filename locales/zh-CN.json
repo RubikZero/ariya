@@ -1,4 +1,8 @@
 {
+  "$meta": {
+    "language_name": "中文"
+  },
+
   "admin.page.title": "Ariya - 管理面板",
   "admin.page.subtitle": "Slay the Spire 2 Mod 日志收集平台 · 管理面板",
 
@@ -59,8 +63,29 @@
   "admin.dashboard.logs.col_count": "次数",
   "admin.dashboard.logs.total": "共 {count} 条记录。点击行查看详情。",
 
+  "admin.nav.dashboard": "控制台",
+  "admin.nav.browse": "日志浏览",
+
+  "admin.browse.title": "日志浏览",
+  "admin.browse.loading": "加载中...",
+  "admin.browse.empty": "暂无日志记录",
+  "admin.browse.unauthorized": "未授权，请刷新页面重新登录",
+  "admin.browse.col_time": "时间",
+  "admin.browse.col_mod": "Mod",
+  "admin.browse.col_version": "Mod 版本",
+  "admin.browse.col_game_version": "游戏版本",
+  "admin.browse.col_error": "异常消息",
+  "admin.browse.col_stack": "堆栈跟踪",
+  "admin.browse.col_state": "游戏状态",
+  "admin.browse.col_os": "操作系统",
+  "admin.browse.col_os_ver": "系统版本",
+  "admin.browse.col_count": "次数",
+  "admin.browse.col_hash": "Hash",
+  "admin.browse.total": "共 {count} 条记录。点击行查看详情。",
+
   "detail.page.title": "日志详情 - Ariya",
   "detail.back": "返回管理面板",
+  "detail.back_browse": "返回日志浏览",
   "detail.page.heading": "日志详情",
   "detail.basic_info": "基本信息",
   "detail.time": "时间",

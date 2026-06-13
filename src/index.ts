@@ -5,7 +5,7 @@ export interface Env {
 	ADMIN_KEY?: string;
 }
 
-import { renderAdminPage, handleAdminLogs, handleLogDetail, handleRegisterAdmin, handleLogin, verifySessionToken } from "./admin.js";
+import { renderAdminPage, renderBrowsePage, handleAdminLogs, handleBrowseLogs, handleLogDetail, handleRegisterAdmin, handleLogin, verifySessionToken } from "./admin.js";
 import { handleLogSubmission } from "./logs.js";
 
 async function isAuthed(request: Request, env: Env, token: string): Promise<boolean> {
@@ -33,12 +33,21 @@ export default {
 			const token = url.searchParams.get("token") || "";
 			const hash = url.searchParams.get("hash") || "";
 			const lang = url.searchParams.get("lang") || "zh-CN";
+			const from = url.searchParams.get("from") || "";
 			const authed = await isAuthed(request, env, token);
 			if (!authed) {
 				return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { "Content-Type": "application/json" } });
 			}
-			if (hash) return handleLogDetail(env, hash, token, lang);
+			if (hash) return handleLogDetail(env, hash, token, lang as any, from || undefined);
 			return handleAdminLogs(env);
+		}
+		if (url.pathname === "/admin/browse") {
+			const token = url.searchParams.get("token") || "";
+			const lang = url.searchParams.get("lang") || "zh-CN";
+			const authed = await isAuthed(request, env, token);
+			if (!authed) return new Response("Unauthorized", { status: 401 });
+			if (request.method === "POST") return handleBrowseLogs(env);
+			return renderBrowsePage(token, lang);
 		}
 		if (url.pathname === "/admin/login" && request.method === "POST") {
 			const body = await request.json() as any;
