@@ -43,10 +43,10 @@ tr:hover td { background:rgba(51,65,85,0.5); }
 .sidebar .nav-icon { font-size:1rem; width:1.25rem; text-align:center; flex-shrink:0; }
 .sidebar .nav-label { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .sidebar.collapsed .nav-label { display:none; }
-.sidebar .toggle-btn { background:none; border:none; color:#64748b; cursor:pointer; font-size:1rem; padding:0.25rem; border-radius:0.25rem; margin-bottom:0.5rem; text-align:left; }
+.sidebar .toggle-btn { background:none; border:none; color:#64748b; cursor:pointer; font-size:1rem; padding:0.25rem; border-radius:0.25rem; margin-bottom:0.5rem; text-align:center; width:100%; }
 .sidebar .toggle-btn:hover { background:#334155; color:#e2e8f0; }
-.sidebar .lang-select { margin-top:auto; background:#0f172a; color:#e2e8f0; border:1px solid #475569; border-radius:0.375rem; padding:0.375rem 0.5rem; font-size:0.8125rem; cursor:pointer; }
-.sidebar.collapsed .lang-select { display:none; }
+.sidebar.collapsed .nav-item { justify-content:center; padding:0.5rem 0; gap:0; }
+.sidebar.collapsed .nav-item:hover { padding:0.5rem 0; }
 .content { flex:1; padding:1.5rem; overflow-x:auto; }
 `;
 
@@ -254,7 +254,6 @@ ${DETAIL_STYLE}
 }
 
 function sidebarHtml(lang: Lang, token: string, page: string): string {
-	const langOpts = LANGUAGES.map(l => `<option value="${l.code}" ${lang === l.code ? "selected" : ""}>${htm(l.name)}</option>`).join("");
 	return `<div class="sidebar" id="sidebar">
   <button class="toggle-btn" onclick="toggleSidebar()">\u2630</button>
   <a href="/admin?token=${encodeURIComponent(token)}&lang=${lang}" class="nav-item ${page === "dashboard" ? "active" : ""}">
@@ -263,7 +262,6 @@ function sidebarHtml(lang: Lang, token: string, page: string): string {
   <a href="/admin/browse?token=${encodeURIComponent(token)}&lang=${lang}" class="nav-item ${page === "browse" ? "active" : ""}">
     <span class="nav-icon">\u2637</span><span class="nav-label">${htm(t("admin.nav.browse", lang))}</span>
   </a>
-  <select class="lang-select" onchange="switchLang(this.value)">${langOpts}</select>
 </div>`;
 }
 
@@ -284,11 +282,12 @@ function renderHtml(content: string, token: string, lang: Lang, authed: boolean 
 <style>${STYLE}</style>
 </head>
 <body>
-<header>
+<header style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;">
   <div>
     <h1>Ariya</h1>
     <p>${htm(t("admin.page.subtitle", lang))}</p>
   </div>
+  <select onchange="switchLang(this.value)" style="background:#0f172a;color:#e2e8f0;border:1px solid #475569;border-radius:0.375rem;padding:0.375rem 0.75rem;font-size:0.8125rem;cursor:pointer;">${LANGUAGES.map(l => `<option value="${l.code}" ${lang === l.code ? "selected" : ""}>${htm(l.name)}</option>`).join("")}</select>
 </header>
 ${mainContent}
 <script>
