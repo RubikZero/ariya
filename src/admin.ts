@@ -93,7 +93,7 @@ export async function handleLogDetail(env: Env, hash: string, token: string): Pr
 		if (!log) {
 			return new Response("Not found", { status: 404 });
 		}
-		return new Response(renderDetailPage(log, token), {
+		return new Response(renderDetailPage(log, token, "zh-CN"), {
 			headers: { "Content-Type": "text/html; charset=utf-8" },
 		});
 	} catch (e: any) {

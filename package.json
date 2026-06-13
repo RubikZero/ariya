@@ -9,8 +9,12 @@
     "start": "wrangler dev",
     "test": "vitest",
     "cf-typegen": "wrangler types",
+    "build:strings": "node scripts/generate-strings.mjs",
     "setup": "node scripts/setup.mjs",
-    "gen-key": "node -e \"console.log(require('crypto').randomBytes(32).toString('hex'))\""
+    "gen-key": "node -e \"console.log(require('crypto').randomBytes(32).toString('hex'))\"",
+    "predeploy": "npm run build:strings",
+    "predev": "npm run build:strings",
+    "pretest": "npm run build:strings"
   },
   "devDependencies": {
     "@cloudflare/vitest-pool-workers": "^0.12.4",
