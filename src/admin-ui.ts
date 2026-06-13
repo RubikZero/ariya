@@ -208,7 +208,7 @@ ${DETAIL_STYLE}
     <a href="/admin?token=${encodeURIComponent(token)}&lang=${lang}" class="back-link">\u2190 ${htm(t("detail.back", lang))}</a>
     <h1>${htm(t("detail.page.heading", lang))}</h1>
   </div>
-  <select onchange="var u=new URL(window.location.href);u.searchParams.set('lang',this.value);location.href=u.toString()" style="background:#0f172a;color:#e2e8f0;border:1px solid #475569;border-radius:0.375rem;padding:0.375rem 0.75rem;font-size:0.8125rem;cursor:pointer;">
+  <select onchange="var q=location.search;if(q.match(/lang=[^&]+/)){location.search=q.replace(/lang=[^&]+/,'lang='+this.value)}else{location.search=q+(q?'&':'?')+'lang='+this.value}" style="background:#0f172a;color:#e2e8f0;border:1px solid #475569;border-radius:0.375rem;padding:0.375rem 0.75rem;font-size:0.8125rem;cursor:pointer;">
     <option value="zh-CN" ${lang === "zh-CN" ? "selected" : ""}>中文</option>
     <option value="en" ${lang === "en" ? "selected" : ""}>English</option>
   </select>
