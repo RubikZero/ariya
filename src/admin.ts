@@ -400,7 +400,17 @@ async function testSubmit() {
   const result = document.getElementById("test-result");
   if (!key) { result.className = "result error"; result.textContent = "请输入 HMAC 密钥"; return; }
   result.className = "result info"; result.textContent = "计算 HMAC 签名...";
-  const payload = JSON.stringify({ mod_id:"sts2-mod-example", mod_version:"1.0.0", game_version:"2.0", error_message:"测试异常 - "+new Date().toISOString(), stack_trace:"at GameLogic.update (GameLogic.cs:123)\\nat GameManager.run (GameManager.cs:456)", game_state:"{\\"game.scene\\":\\"CombatRoom\\",\\"game.in_run\\":\\"true\\"}", player_os:navigator.platform||"Unknown", os_version:navigator.userAgent||"Unknown", created_at:Date.now() });
+  var p = {};
+  p.mod_id = "sts2-mod-example";
+  p.mod_version = "1.0.0";
+  p.game_version = "2.0";
+  p.error_message = "测试异常 - " + new Date().toISOString();
+  p.stack_trace = "at GameLogic.update (GameLogic.cs:123)\\nat GameManager.run (GameManager.cs:456)";
+  p.game_state = '{"game.scene":"CombatRoom","game.in_run":"true"}';
+  p.player_os = navigator.platform || "Unknown";
+  p.os_version = navigator.userAgent || "Unknown";
+  p.created_at = Date.now();
+  var payload = JSON.stringify(p);
   try {
     const encoder = new TextEncoder();
     const keyData = encoder.encode(key);
@@ -411,7 +421,7 @@ async function testSubmit() {
     const resp = await fetch(url, { method:"POST", headers:{"Content-Type":"application/json","X-Mod-Signature":signature}, body:payload });
     const text = await resp.text();
     result.className = resp.ok ? "result success" : "result error";
-    result.textContent = (resp.ok ? "成功! " : "失败 (HTTP "+resp.status+") ") + "\\n" + text;
+    result.textContent = (resp.ok ? "OK: " : "ERR: " + resp.status + " ") + text;
   } catch(e) { result.className = "result error"; result.textContent = "网络错误: "+e.message; }
 }
 async function loadLogs() {
