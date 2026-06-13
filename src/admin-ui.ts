@@ -48,6 +48,9 @@ tr:hover td { background:rgba(51,65,85,0.5); }
 .sidebar.collapsed .nav-item { justify-content:center; padding:0.5rem 0; gap:0; }
 .sidebar.collapsed .nav-item:hover { padding:0.5rem 0; }
 .content { flex:1; padding:1.5rem; overflow-x:auto; }
+th { position:relative; user-select:none; }
+.resizer { position:absolute; right:0; top:0; bottom:0; width:5px; cursor:col-resize; z-index:1; }
+.resizer:hover, .resizing .resizer { background:rgba(59,130,246,0.4); }
 `;
 
 const DISABLED_PAGE = (lang: Lang) => `
@@ -420,6 +423,43 @@ async function loadLogs() {
     container.innerHTML = h;
   } catch(e) { container.innerHTML = '<div class="result error">' + s("error.network").replace("{msg}", e.message) + '</div>'; }
 }
+function makeResizable(id) {
+  var table = document.getElementById(id);
+  if (!table) return;
+  var cols = table.querySelectorAll("th");
+  var saved = sessionStorage.getItem("col_widths_" + id);
+  if (saved) {
+    var widths = JSON.parse(saved);
+    for (var ci = 0; ci < cols.length && ci < widths.length; ci++) {
+      cols[ci].style.width = widths[ci] + "px";
+    }
+  }
+  for (var ci = 0; ci < cols.length; ci++) {
+    var resizer = cols[ci].querySelector(".resizer");
+    if (!resizer) continue;
+    resizer.addEventListener("mousedown", function(e) {
+      e.preventDefault();
+      var th = this.parentElement;
+      var startX = e.clientX;
+      var startW = th.offsetWidth;
+      function onMove(ev) {
+        var w = Math.max(30, startW + ev.clientX - startX);
+        th.style.width = w + "px";
+        table.classList.add("resizing");
+      }
+      function onUp() {
+        document.removeEventListener("mousemove", onMove);
+        document.removeEventListener("mouseup", onUp);
+        table.classList.remove("resizing");
+        var newWidths = [];
+        for (var c = 0; c < cols.length; c++) newWidths.push(cols[c].offsetWidth);
+        sessionStorage.setItem("col_widths_" + id, JSON.stringify(newWidths));
+      }
+      document.addEventListener("mousemove", onMove);
+      document.addEventListener("mouseup", onUp);
+    });
+  }
+}
 async function loadBrowseData() {
   var container = document.getElementById("browse-container");
   if (!container) return;
@@ -430,7 +470,12 @@ async function loadBrowseData() {
     if (resp.status === 401) { container.innerHTML = '<div class="result error">' + s("admin.browse.unauthorized") + '</div>'; return; }
     var data = await resp.json();
     if (!data.logs || !data.logs.length) { container.innerHTML = '<div class="empty-state"><p>' + s("admin.browse.empty") + '</p></div>'; return; }
-    var h = '<table style="width:100%;font-size:0.75rem;"><thead><tr><th>' + s("admin.browse.col_time") + '</th><th>' + s("admin.browse.col_mod") + '</th><th>' + s("admin.browse.col_version") + '</th><th>' + s("admin.browse.col_game_version") + '</th><th>' + s("admin.browse.col_error") + '</th><th>' + s("admin.browse.col_stack") + '</th><th>' + s("admin.browse.col_state") + '</th><th>' + s("admin.browse.col_os") + '</th><th>' + s("admin.browse.col_os_ver") + '</th><th>' + s("admin.browse.col_count") + '</th><th>' + s("admin.browse.col_hash") + '</th></tr></thead><tbody>';
+    var cols = [s("admin.browse.col_time"), s("admin.browse.col_mod"), s("admin.browse.col_version"), s("admin.browse.col_game_version"), s("admin.browse.col_error"), s("admin.browse.col_stack"), s("admin.browse.col_state"), s("admin.browse.col_os"), s("admin.browse.col_os_ver"), s("admin.browse.col_count"), s("admin.browse.col_hash")];
+    var h = '<table id="browse-table" style="width:100%;font-size:0.75rem;table-layout:fixed;"><thead><tr>';
+    for (var ci = 0; ci < cols.length; ci++) {
+      h += '<th id="bc-' + ci + '">' + cols[ci] + '<div class="resizer"></div></th>';
+    }
+    h += '</tr></thead><tbody>';
     for (var i = 0; i < data.logs.length; i++) {
       var log = data.logs[i];
       h += '<tr data-hash="'+htm(log.hash)+'" data-from="browse" class="log-row" style="cursor:pointer;">' +
@@ -438,9 +483,9 @@ async function loadBrowseData() {
         '<td><span class="tag">'+htm(log.mod_id)+'</span></td>' +
         '<td>'+htm(log.mod_version)+'</td>' +
         '<td>'+(log.game_version ? htm(log.game_version) : '-')+'</td>' +
-        '<td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="'+htm(log.error_message)+'">'+htm(log.error_message)+'</td>' +
-        '<td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="'+htm(log.stack_trace||'')+'">'+(log.stack_trace ? htm(log.stack_trace.substring(0,80)) : '-')+'</td>' +
-        '<td style="max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="'+htm(log.game_state||'')+'">'+(log.game_state ? htm(log.game_state.substring(0,60)) : '-')+'</td>' +
+        '<td style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="'+htm(log.error_message)+'">'+htm(log.error_message)+'</td>' +
+        '<td style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="'+htm(log.stack_trace||'')+'">'+(log.stack_trace ? htm(log.stack_trace.substring(0,80)) : '-')+'</td>' +
+        '<td style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="'+htm(log.game_state||'')+'">'+(log.game_state ? htm(log.game_state.substring(0,60)) : '-')+'</td>' +
         '<td>'+htm(log.player_os||'-')+'</td>' +
         '<td>'+htm(log.os_version||'-')+'</td>' +
         '<td>'+log.count+'</td>' +
@@ -448,6 +493,7 @@ async function loadBrowseData() {
     }
     h += '</tbody></table><p style="color:#64748b;font-size:0.75rem;margin-top:0.5rem;">' + s("admin.browse.total").replace("{count}", data.logs.length) + '</p>';
     container.innerHTML = h;
+    makeResizable("browse-table");
   } catch(e) { container.innerHTML = '<div class="result error">' + s("error.network").replace("{msg}", e.message) + '</div>'; }
 }
 document.addEventListener("DOMContentLoaded", function() {
