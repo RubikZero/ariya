@@ -58,6 +58,10 @@ export default {
 			return handleRegisterAdmin(env, body);
 		}
 
+		if (url.pathname === "/favicon.ico") {
+			return new Response(null, { status: 204 });
+		}
+
 		return handleLogSubmission(request, env);
 	},
 } satisfies ExportedHandler<Env>;
