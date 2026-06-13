@@ -3,6 +3,13 @@ name: Deploy
 on:
   push:
     branches: [main, master]
+    paths-ignore:
+      - "README.md"
+      - "README.en.md"
+      - "LICENSE"
+      - ".gitignore"
+      - ".editorconfig"
+      - ".prettierrc"
   workflow_dispatch:
 
 env:
