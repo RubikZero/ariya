@@ -405,7 +405,8 @@ async function testSubmit() {
   p.mod_version = "1.0.0";
   p.game_version = "2.0";
   p.error_message = "测试异常 - " + new Date().toISOString();
-  p.stack_trace = "at GameLogic.update (GameLogic.cs:123)\\nat GameManager.run (GameManager.cs:456)";
+  var nl = String.fromCharCode(10);
+  p.stack_trace = "at GameLogic.update (GameLogic.cs:123)" + nl + "at GameManager.run (GameManager.cs:456)";
   p.game_state = '{"game.scene":"CombatRoom","game.in_run":"true"}';
   p.player_os = navigator.platform || "Unknown";
   p.os_version = navigator.userAgent || "Unknown";
@@ -424,6 +425,17 @@ async function testSubmit() {
     result.textContent = (resp.ok ? "OK: " : "ERR: " + resp.status + " ") + text;
   } catch(e) { result.className = "result error"; result.textContent = "网络错误: "+e.message; }
 }
+function viewLog(hash) {
+  var t = TOKEN || sessionStorage.getItem("ariya_token") || "";
+  location.href = "/admin/logs?hash=" + encodeURIComponent(hash) + "&token=" + encodeURIComponent(t);
+}
+document.addEventListener("DOMContentLoaded", function() {
+  document.addEventListener("click", function(e) {
+    var row = e.target.closest(".log-row");
+    if (row) viewLog(row.getAttribute("data-hash"));
+  });
+});
+
 async function loadLogs() {
   const container = document.getElementById("logs-container");
   container.innerHTML = '<div class="empty-state"><p>加载中...</p></div>';
@@ -435,8 +447,7 @@ async function loadLogs() {
     if (!data.logs || !data.logs.length) { container.innerHTML = '<div class="empty-state"><p>暂无日志</p></div>'; return; }
     let html = '<table><thead><tr><th>时间</th><th>Mod</th><th>版本</th><th>异常</th><th>次数</th></tr></thead><tbody>';
     for (const log of data.logs) {
-      const detailUrl = "/admin/logs?hash=" + encodeURIComponent(log.hash) + "&token=" + encodeURIComponent(token);
-      html += '<tr onclick="location.href=\''+detailUrl+'\'" style="cursor:pointer;">' +
+      html += '<tr data-hash="'+htm(log.hash)+'" class="log-row" style="cursor:pointer;">' +
         '<td style="white-space:nowrap;font-size:0.75rem;color:#94a3b8;">'+new Date(log.created_at).toLocaleString()+'</td>' +
         '<td><span class="tag">'+htm(log.mod_id)+'</span></td>' +
         '<td>'+htm(log.mod_version)+'</td>' +
