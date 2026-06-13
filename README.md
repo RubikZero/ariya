@@ -89,7 +89,7 @@ npx wrangler d1 create ariya-sts2-mod-logs
 echo D1_DATABASE_ID=你的-database-id >> .env
 ```
 
-`wrangler.jsonc` 中的 `"${D1_DATABASE_ID}"` 会自动读取此环境变量。
+`wrangler.jsonc` 中的 `"__D1_DATABASE_ID__"` 占位符会在部署时被替换。
 在 GitHub Actions 中则通过 Secrets 传入（见 CI/CD 章节）。
 
 ### 2. 生成 HMAC 密钥并设为 Secret

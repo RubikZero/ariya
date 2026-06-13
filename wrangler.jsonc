@@ -15,7 +15,7 @@
 		{
 			"binding": "DB",
 			"database_name": "ariya-sts2-mod-logs",
-			"database_id": "${D1_DATABASE_ID}"
+			"database_id": "__D1_DATABASE_ID__"
 		}
 	]
 }
