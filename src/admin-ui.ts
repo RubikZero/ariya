@@ -457,8 +457,9 @@ async function loadBrowseData() {
   gridDiv.id = "browse-grid";
   gridDiv.className = "ag-theme-alpine-dark";
   gridDiv.style.width = "100%";
-  gridDiv.style.height = "calc(100vh - 200px)";
-  gridDiv.style.minHeight = "400px";
+  gridDiv.style.height = "calc(100vh - 220px)";
+  gridDiv.style.minHeight = "450px";
+  gridDiv.style.maxHeight = "calc(100vh - 220px)";
   container.appendChild(gridDiv);
 
   new agGrid.Grid(gridDiv, {
@@ -475,6 +476,7 @@ async function loadBrowseData() {
       {field:"count", headerName:s("admin.browse.col_count"), width:60, sortable:true},
       {field:"hash", headerName:s("admin.browse.col_hash"), width:70, sortable:true}
     ],
+    domLayout: "normal",
     defaultColDef: { resizable: true },
     rowData: allData,
     pagination: true,
