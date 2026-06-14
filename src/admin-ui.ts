@@ -46,12 +46,9 @@ tr:hover td { background:rgba(51,65,85,0.5); }
 .sidebar .toggle-btn { background:none; border:none; color:#64748b; cursor:pointer; font-size:1rem; padding:0.25rem; border-radius:0.25rem; margin-bottom:0.5rem; text-align:center; width:100%; }
 .sidebar .toggle-btn:hover { background:#334155; color:#e2e8f0; }
 .sidebar.collapsed .nav-item { justify-content:center; padding:0.5rem 0; gap:0; }
-.tabulator .tabulator-footer .tabulator-paginator { display:flex !important; flex-direction:row !important; flex-wrap:nowrap !important; align-items:center; white-space:nowrap; gap:0.25rem; }
-.tabulator .tabulator-footer .tabulator-page-size { display:flex !important; flex-direction:row !important; align-items:center; flex-shrink:0; }
-.tabulator .tabulator-footer .tabulator-page-size label { display:inline !important; margin:0; }
-.tabulator .tabulator-footer .tabulator-page-size select { display:inline !important; width:auto !important; margin:0 0.25rem; }
-.tabulator .tabulator-footer .tabulator-pages { display:flex !important; flex-direction:row !important; flex-wrap:nowrap !important; gap:0.125rem; }
-.tabulator .tabulator-footer .tabulator-page-counter { flex-shrink:0; margin-left:auto; }
+.ag-theme-alpine-dark { --ag-background-color: #1e293b; --ag-odd-row-background-color: #1a2235; --ag-header-background-color: #0f172a; --ag-border-color: #334155; --ag-row-hover-color: #334155; --ag-selected-row-background-color: #3b82f6; --ag-font-size: 12px; --ag-header-font-size: 11px; height: auto; min-height: 200px; }
+.ag-theme-alpine-dark .ag-cell { display:flex; align-items:center; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.ag-theme-alpine-dark .ag-row { cursor:pointer; }
 .sidebar.collapsed .nav-item:hover { padding:0.5rem 0; }
 .content { flex:1; padding:1.5rem; overflow-x:auto; }
 th { position:relative; user-select:none; }
@@ -287,7 +284,8 @@ function renderHtml(content: string, token: string, lang: Lang, authed: boolean 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>${htm(t("admin.page.title", lang))}</title>
-<link href="https://unpkg.com/tabulator-tables@6.3.1/dist/css/tabulator_midnight.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/ag-grid-community@31.3.1/dist/styles/ag-grid.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/ag-grid-community@31.3.1/dist/styles/ag-theme-alpine-dark.min.css" rel="stylesheet">
 <style>${STYLE}</style>
 </head>
 <body>
@@ -299,7 +297,7 @@ function renderHtml(content: string, token: string, lang: Lang, authed: boolean 
   <select onchange="switchLang(this.value)" style="background:#0f172a;color:#e2e8f0;border:1px solid #475569;border-radius:0.375rem;padding:0.375rem 0.75rem;font-size:0.8125rem;cursor:pointer;">${LANGUAGES.map(l => `<option value="${l.code}" ${lang === l.code ? "selected" : ""}>${htm(l.name)}</option>`).join("")}</select>
 </header>
 ${mainContent}
-<script src="https://unpkg.com/tabulator-tables@6.3.1/dist/js/tabulator.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/ag-grid-community@31.3.1/dist/ag-grid-community.min.js"></script>
 <script>
 const TOKEN = ${tokenJs};
 const LANG = ${langJs};
@@ -440,73 +438,68 @@ async function loadBrowseData() {
 
   container.innerHTML = '<div class="empty-state"><p>' + s("admin.browse.loading") + '</p></div>';
 
-  if (typeof Tabulator === "undefined") {
-    container.innerHTML = '<div class="result error">Tabulator library failed to load</div>';
+  if (typeof agGrid === "undefined") {
+    container.innerHTML = '<div class="result error">AG Grid library failed to load</div>';
     return;
   }
 
-  var paginationLocale = {
-    "pagination": {
-      "page_size": s("admin.browse.rows"),
-      "first": "\u00ab",
-      "prev": "\u2039",
-      "next": "\u203a",
-      "last": "\u00bb",
-      "counter": { "showing": "", "of": "", "rows": "", "pages": "" }
+  var gridDiv = document.createElement("div");
+  gridDiv.id = "browse-grid";
+  gridDiv.className = "ag-theme-alpine-dark";
+  gridDiv.style.width = "100%";
+  gridDiv.style.minHeight = "300px";
+  container.innerHTML = "";
+  container.appendChild(gridDiv);
+
+  var api = null;
+  var gridOptions = {
+    columnDefs: [
+      {field:"time", headerName:s("admin.browse.col_time"), width:140, sortable:true, cellRenderer:function(p){return p.value?new Date(p.value).toLocaleString():"";}},
+      {field:"mod_id", headerName:s("admin.browse.col_mod"), width:90, sortable:true},
+      {field:"mod_ver", headerName:s("admin.browse.col_version"), width:80, sortable:true},
+      {field:"game_ver", headerName:s("admin.browse.col_game_version"), width:80, sortable:true},
+      {field:"error", headerName:s("admin.browse.col_error"), flex:3, minWidth:80, tooltipField:"error"},
+      {field:"stack", headerName:s("admin.browse.col_stack"), flex:3, minWidth:80, tooltipField:"stack"},
+      {field:"state", headerName:s("admin.browse.col_state"), flex:2, minWidth:60, tooltipField:"state"},
+      {field:"os", headerName:s("admin.browse.col_os"), width:80, sortable:true},
+      {field:"os_ver", headerName:s("admin.browse.col_os_ver"), width:80, sortable:true},
+      {field:"count", headerName:s("admin.browse.col_count"), width:60, sortable:true},
+      {field:"hash", headerName:s("admin.browse.col_hash"), width:70, sortable:true}
+    ],
+    defaultColDef: { resizable: true },
+    pagination: true,
+    paginationPageSize: savedSize,
+    paginationPageSizeSelector: [10, 20, 50],
+    onPaginationChanged: function() {
+      if (api) sessionStorage.setItem("browse_page_size", String(api.paginationGetPageSize()));
+    },
+    onRowClicked: function(event) {
+      var d = event.data;
+      if (d && d.id) viewLog(d.id, "browse", d._lang || "");
+    },
+    onGridReady: function(event) {
+      api = event.api;
+      var datasource = {
+        getRows: function(params) {
+          var size = params.endRow - params.startRow;
+          var page = Math.floor(params.startRow / size) + 1;
+          var sortStr = "";
+          if (params.sortModel && params.sortModel.length) {
+            sortStr = "&sort[0][field]=" + encodeURIComponent(params.sortModel[0].colId) + "&sort[0][dir]=" + encodeURIComponent(params.sortModel[0].sort);
+          }
+          fetch("/admin/browse?token=" + encodeURIComponent(token) + "&_ajax=1&page=" + page + "&size=" + size + sortStr)
+            .then(function(r){ return r.json(); })
+            .then(function(data) {
+              params.successCallback(data.data || [], data.total || 0);
+            })
+            .catch(function() { params.failCallback(); });
+        }
+      };
+      event.api.setGridOption("serverSideDatasource", datasource);
+      event.api.setGridOption("rowModelType", "serverSide");
     }
   };
-  var allData = [];
-  try {
-    var r = await fetch("/admin/browse?token=" + encodeURIComponent(token) + "&_ajax=1&page=1&size=2000&sort%5B0%5D%5Bfield%5D=time&sort%5B0%5D%5Bdir%5D=desc");
-    var j = await r.json();
-    allData = j.data || [];
-  } catch(e) {}
-
-  var table = new Tabulator("#browse-container", {
-    data: allData,
-    locale: true,
-    langs: { "default": paginationLocale },
-    pagination: "local",
-    paginationSize: savedSize,
-    paginationSizeSelector: [10, 20, 50],
-    layout: "fitDataFill",
-    resizableColumns: true,
-    height: "auto",
-    columns: [
-      {title:s("admin.browse.col_time"), field:"time", width:140, minWidth:80, headerSort:true, sorter:"number", formatter:function(c){return c.getValue()?new Date(c.getValue()).toLocaleString():"";}},
-      {title:s("admin.browse.col_mod"), field:"mod_id", width:90, minWidth:50, headerSort:true},
-      {title:s("admin.browse.col_version"), field:"mod_ver", width:80, minWidth:50, headerSort:true},
-      {title:s("admin.browse.col_game_version"), field:"game_ver", width:80, minWidth:50, headerSort:true},
-      {title:s("admin.browse.col_error"), field:"error", widthGrow:3, minWidth:80, tooltip:true, formatter:"textarea"},
-      {title:s("admin.browse.col_stack"), field:"stack", widthGrow:3, minWidth:80, tooltip:true},
-      {title:s("admin.browse.col_state"), field:"state", widthGrow:2, minWidth:60, tooltip:true},
-      {title:s("admin.browse.col_os"), field:"os", width:80, minWidth:50, headerSort:true},
-      {title:s("admin.browse.col_os_ver"), field:"os_ver", width:80, minWidth:50, headerSort:true},
-      {title:s("admin.browse.col_count"), field:"count", width:60, minWidth:40, hozAlign:"center", headerSort:true},
-      {title:s("admin.browse.col_hash"), field:"hash", width:70, minWidth:50, headerSort:true}
-    ],
-    rowFormatter: function(row) {
-      row.getElement().dataset.id = row.getData().id;
-      row.getElement().dataset.lang = row.getData()._lang || "";
-    },
-    paginationSizeSet: function(size) {
-      sessionStorage.setItem("browse_page_size", String(size));
-    },
-    dataLoaded: function() {
-      var el = document.getElementById("browse-total");
-      if (el) el.textContent = s("admin.browse.total").replace("{count}", String(allData.length));
-    },
-  });
-
-  var tot = document.createElement("p");
-  tot.id = "browse-total";
-  tot.style.cssText = "color:#64748b;font-size:0.75rem;margin-top:0.5rem;";
-  container.appendChild(tot);
-
-  container.addEventListener("click", function(ev) {
-    var row = ev.target.closest(".tabulator-row");
-    if (row && row.dataset.id) viewLog(row.dataset.id, "browse", row.dataset.lang);
-  });
+  new agGrid.Grid(gridDiv, gridOptions);
 }
 document.addEventListener("DOMContentLoaded", function() {
   if (document.getElementById("browse-container")) loadBrowseData();
