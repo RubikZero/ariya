@@ -46,7 +46,7 @@ tr:hover td { background:rgba(51,65,85,0.5); }
 .sidebar .toggle-btn { background:none; border:none; color:#64748b; cursor:pointer; font-size:1rem; padding:0.25rem; border-radius:0.25rem; margin-bottom:0.5rem; text-align:center; width:100%; }
 .sidebar .toggle-btn:hover { background:#334155; color:#e2e8f0; }
 .sidebar.collapsed .nav-item { justify-content:center; padding:0.5rem 0; gap:0; }
-.ag-theme-alpine-dark { --ag-background-color: #1e293b; --ag-odd-row-background-color: #1a2235; --ag-header-background-color: #0f172a; --ag-border-color: #334155; --ag-row-hover-color: #334155; --ag-selected-row-background-color: #3b82f6; --ag-font-size: 12px; --ag-header-font-size: 11px; height: auto; min-height: 200px; }
+.ag-theme-alpine-dark { --ag-background-color: #1e293b; --ag-odd-row-background-color: #1a2235; --ag-header-background-color: #0f172a; --ag-border-color: #334155; --ag-row-hover-color: #334155; --ag-selected-row-background-color: #3b82f6; --ag-font-size: 12px; --ag-header-font-size: 11px; }
 .ag-theme-alpine-dark .ag-cell { display:flex; align-items:center; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .ag-theme-alpine-dark .ag-row { cursor:pointer; }
 .sidebar.collapsed .nav-item:hover { padding:0.5rem 0; }
@@ -446,16 +446,19 @@ async function loadBrowseData() {
   var allData = [];
   try {
     var r = await fetch("/admin/browse?token=" + encodeURIComponent(token) + "&_ajax=1&page=1&size=2000&sort%5B0%5D%5Bfield%5D=time&sort%5B0%5D%5Bdir%5D=desc");
+    if (!r.ok) { container.innerHTML = '<div class="result error">' + s("admin.browse.unauthorized") + '</div>'; return; }
     var j = await r.json();
     allData = (j.data || []).map(function(d) { d._lang = d._lang || ""; return d; });
-  } catch(e) {}
+  } catch(e) { container.innerHTML = '<div class="result error">' + s("error.network").replace("{msg}", e.message) + '</div>'; return; }
+
+  container.innerHTML = "";
 
   var gridDiv = document.createElement("div");
   gridDiv.id = "browse-grid";
   gridDiv.className = "ag-theme-alpine-dark";
   gridDiv.style.width = "100%";
-  gridDiv.style.minHeight = "300px";
-  container.innerHTML = "";
+  gridDiv.style.height = "calc(100vh - 200px)";
+  gridDiv.style.minHeight = "400px";
   container.appendChild(gridDiv);
 
   agGrid.createGrid(gridDiv, {
