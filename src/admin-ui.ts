@@ -272,10 +272,9 @@ function renderHtml(content: string, token: string, lang: Lang, authed: boolean 
 	const tokenJs = token ? JSON.stringify(token) : "null";
 	const ls = langStrings(lang);
 	const langJs = JSON.stringify(ls);
-	const langOpts = LANGUAGES.map(l => `<option value="${l.code}" ${lang === l.code ? "selected" : ""}>${htm(l.name)}</option>`).join("");
 	const mainContent = authed
 		? `<div class="layout">${sidebarHtml(lang, token, page)}<main class="content">${content}</main></div>`
-		: `<div style="position:absolute;top:1rem;right:1rem;"><select onchange="switchLang(this.value)" style="background:#0f172a;color:#e2e8f0;border:1px solid #475569;border-radius:0.375rem;padding:0.375rem 0.75rem;font-size:0.8125rem;cursor:pointer;">${langOpts}</select></div><main style="max-width:480px;margin:4rem auto;padding:0 1rem;">${content}</main>`;
+		: `<main style="max-width:480px;margin:4rem auto;padding:0 1rem;">${content}</main>`;
 	const html = `<!DOCTYPE html>
 <html lang="${lang}">
 <head>
