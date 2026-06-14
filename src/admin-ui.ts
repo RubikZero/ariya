@@ -461,7 +461,7 @@ async function loadBrowseData() {
   gridDiv.style.minHeight = "400px";
   container.appendChild(gridDiv);
 
-  agGrid.createGrid(gridDiv, {
+  new agGrid.Grid(gridDiv, {
     columnDefs: [
       {field:"time", headerName:s("admin.browse.col_time"), width:140, sortable:true, cellRenderer:function(p){return p.value?new Date(p.value).toLocaleString():"";}},
       {field:"mod_id", headerName:s("admin.browse.col_mod"), width:90, sortable:true},
