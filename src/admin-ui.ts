@@ -284,8 +284,8 @@ function renderHtml(content: string, token: string, lang: Lang, authed: boolean 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>${htm(t("admin.page.title", lang))}</title>
-<link href="https://cdn.jsdelivr.net/npm/ag-grid-community@31.3.1/dist/styles/ag-grid.min.css" rel="stylesheet">
-<link href="https://cdn.jsdelivr.net/npm/ag-grid-community@31.3.1/dist/styles/ag-theme-alpine-dark.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/ag-grid-community@31.3.1/styles/ag-grid.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/ag-grid-community@31.3.1/styles/ag-theme-alpine-dark.min.css" rel="stylesheet">
 <style>${STYLE}</style>
 </head>
 <body>
