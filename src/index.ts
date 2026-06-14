@@ -46,7 +46,7 @@ export default {
 			const lang = url.searchParams.get("lang") || "zh-CN";
 			const authed = await isAuthed(request, env, token);
 			if (!authed) return new Response("Unauthorized", { status: 401 });
-			if (request.method === "POST") return handleBrowseLogs(env, request);
+			if (url.searchParams.has("page") || request.method === "POST") return handleBrowseLogs(env, request);
 			return renderBrowsePage(token, lang);
 		}
 		if (url.pathname === "/admin/login" && request.method === "POST") {

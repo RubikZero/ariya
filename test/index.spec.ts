@@ -164,7 +164,7 @@ describe("Ariya log endpoint", () => {
 		expect(logsJson.logs.length).toBeGreaterThan(0);
 
 		// Browse data endpoint (POST with pagination → valid JSON with data/total/last_page)
-		const r10 = await worker.fetch(new IncomingRequest("http://example.com/admin/browse?token=" + encodeURIComponent(token) + "&page=1&size=10&sort%5B0%5D%5Bfield%5D=time&sort%5B0%5D%5Bdir%5D=desc", { method: "POST" }), env, createExecutionContext());
+		const r10 = await worker.fetch(new IncomingRequest("http://example.com/admin/browse?token=" + encodeURIComponent(token) + "&page=1&size=10&sort%5B0%5D%5Bfield%5D=time&sort%5B0%5D%5Bdir%5D=desc"), env, createExecutionContext());
 		expect(r10.status).toBe(200);
 		const contentType = r10.headers.get("content-type") || "";
 		expect(contentType).toContain("application/json");
