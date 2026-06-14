@@ -46,6 +46,9 @@ tr:hover td { background:rgba(51,65,85,0.5); }
 .sidebar .toggle-btn { background:none; border:none; color:#64748b; cursor:pointer; font-size:1rem; padding:0.25rem; border-radius:0.25rem; margin-bottom:0.5rem; text-align:center; width:100%; }
 .sidebar .toggle-btn:hover { background:#334155; color:#e2e8f0; }
 .sidebar.collapsed .nav-item { justify-content:center; padding:0.5rem 0; gap:0; }
+.tabulator .tabulator-footer .tabulator-paginator { flex-wrap:nowrap; white-space:nowrap; gap:0.25rem; }
+.tabulator .tabulator-footer .tabulator-page-size { margin-right:0; }
+.tabulator .tabulator-footer .tabulator-page-size select { margin:0 0.25rem; }
 .sidebar.collapsed .nav-item:hover { padding:0.5rem 0; }
 .content { flex:1; padding:1.5rem; overflow-x:auto; }
 th { position:relative; user-select:none; }
@@ -446,8 +449,20 @@ async function loadBrowseData() {
     allData = j.data || [];
   } catch(e) {}
 
+  var paginationLocale = {
+    "pagination": {
+      "page_size": s("admin.browse.rows"),
+      "first": "\u00ab",
+      "prev": "\u2039",
+      "next": "\u203a",
+      "last": "\u00bb",
+      "counter": { "showing": "", "of": "", "rows": "", "pages": "" }
+    }
+  };
   var table = new Tabulator("#browse-container", {
     data: allData,
+    locale: true,
+    langs: { "default": paginationLocale },
     pagination: "local",
     paginationSize: savedSize,
     paginationSizeSelector: [10, 20, 50],
