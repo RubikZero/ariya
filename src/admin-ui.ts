@@ -50,7 +50,7 @@ tr:hover td { background:rgba(51,65,85,0.5); }
 .content { flex:1; padding:1.5rem; overflow-x:auto; }
 th { position:relative; user-select:none; }
 .resizer { position:absolute; right:0; top:0; bottom:0; width:5px; cursor:col-resize; z-index:1; }
-.resizer:hover, .resizing .resizer { background:rgba(59,130,246,0.4); }
+
 `;
 
 const DISABLED_PAGE = (lang: Lang) => `
@@ -452,30 +452,43 @@ async function loadBrowseData() {
       });
     }
     container.innerHTML = "";
-    var table = new Tabulator("#browse-container", {
-      data: tableData,
-      layout: "fitDataFill",
-      resizableColumns: true,
-      selectable: false,
-      height: "auto",
-      rowClick: function(e, row) {
-        var d = row.getData();
-        viewLog(d.id, "browse", d._lang);
-      },
-      columns: [
-        {title:s("admin.browse.col_time"), field:"time", width:140, minWidth:80, headerSort:true},
-        {title:s("admin.browse.col_mod"), field:"mod_id", width:90, minWidth:50},
-        {title:s("admin.browse.col_version"), field:"mod_ver", width:80, minWidth:50},
-        {title:s("admin.browse.col_game_version"), field:"game_ver", width:80, minWidth:50},
-        {title:s("admin.browse.col_error"), field:"error", widthGrow:3, minWidth:80, tooltip:true, formatter:"textarea"},
-        {title:s("admin.browse.col_stack"), field:"stack", widthGrow:3, minWidth:80, tooltip:true},
-        {title:s("admin.browse.col_state"), field:"state", widthGrow:2, minWidth:60, tooltip:true},
-        {title:s("admin.browse.col_os"), field:"os", width:80, minWidth:50},
-        {title:s("admin.browse.col_os_ver"), field:"os_ver", width:80, minWidth:50},
-        {title:s("admin.browse.col_count"), field:"count", width:60, minWidth:40, hozAlign:"center"},
-        {title:s("admin.browse.col_hash"), field:"hash", width:70, minWidth:50}
-      ]
-    });
+    if (typeof Tabulator !== "undefined") {
+      new Tabulator("#browse-container", {
+        data: tableData, layout: "fitDataFill", resizableColumns: true, height: "auto",
+        columns: [
+          {title:s("admin.browse.col_time"), field:"time", width:140, minWidth:80, headerSort:true},
+          {title:s("admin.browse.col_mod"), field:"mod_id", width:90, minWidth:50},
+          {title:s("admin.browse.col_version"), field:"mod_ver", width:80, minWidth:50},
+          {title:s("admin.browse.col_game_version"), field:"game_ver", width:80, minWidth:50},
+          {title:s("admin.browse.col_error"), field:"error", widthGrow:3, minWidth:80, tooltip:true, formatter:"textarea"},
+          {title:s("admin.browse.col_stack"), field:"stack", widthGrow:3, minWidth:80, tooltip:true},
+          {title:s("admin.browse.col_state"), field:"state", widthGrow:2, minWidth:60, tooltip:true},
+          {title:s("admin.browse.col_os"), field:"os", width:80, minWidth:50},
+          {title:s("admin.browse.col_os_ver"), field:"os_ver", width:80, minWidth:50},
+          {title:s("admin.browse.col_count"), field:"count", width:60, minWidth:40, hozAlign:"center"},
+          {title:s("admin.browse.col_hash"), field:"hash", width:70, minWidth:50}
+        ],
+        rowFormatter: function(row) {
+          row.getElement().dataset.id = row.getData().id;
+          row.getElement().dataset.lang = row.getData()._lang || "";
+        }
+      });
+      container.addEventListener("click", function(ev) {
+        var row = ev.target.closest(".tabulator-row");
+        if (row && row.dataset.id) viewLog(row.dataset.id, "browse", row.dataset.lang);
+      });
+    } else {
+      var h = '<table style="font-size:0.75rem;width:100%;"><thead><tr><th>' + s("admin.browse.col_time") + '</th><th>' + s("admin.browse.col_mod") + '</th><th>' + s("admin.browse.col_error") + '</th><th>' + s("admin.browse.col_count") + '</th></tr></thead><tbody>';
+      for (var fi = 0; fi < tableData.length; fi++) {
+        h += '<tr data-hash="' + tableData[fi].id + '" data-lang="' + tableData[fi]._lang + '" class="browse-row" style="cursor:pointer;"><td>' + htm(tableData[fi].time) + '</td><td>' + htm(tableData[fi].mod_id) + '</td><td>' + htm(tableData[fi].error) + '</td><td>' + tableData[fi].count + '</td></tr>';
+      }
+      h += '</tbody></table>';
+      container.innerHTML = h;
+      container.addEventListener("click", function(ev) {
+        var row = ev.target.closest(".browse-row");
+        if (row && row.dataset.hash) viewLog(row.dataset.hash, "browse", row.dataset.lang);
+      });
+    }
     var p = document.createElement("p");
     p.style.cssText = "color:#64748b;font-size:0.75rem;margin-top:0.5rem;";
     p.textContent = s("admin.browse.total").replace("{count}", data.logs.length);
