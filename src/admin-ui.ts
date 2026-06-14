@@ -428,72 +428,57 @@ async function loadLogs() {
 async function loadBrowseData() {
   var container = document.getElementById("browse-container");
   if (!container) return;
-  container.innerHTML = '<div class="empty-state"><p>' + s("admin.browse.loading") + '</p></div>';
   var token = TOKEN || sessionStorage.getItem("ariya_token") || "";
-  try {
-    var resp = await fetch("/admin/browse?token="+encodeURIComponent(token), { method:"POST" });
-    if (resp.status === 401) { container.innerHTML = '<div class="result error">' + s("admin.browse.unauthorized") + '</div>'; return; }
-    var data = await resp.json();
-    if (!data.logs || !data.logs.length) { container.innerHTML = '<div class="empty-state"><p>' + s("admin.browse.empty") + '</p></div>'; return; }
-    var currentLang = (document.getElementById("lang-select") || {}).value || (location.href.match(/[?&]lang=([^&]+)/) || [])[1] || "";
-    var tableData = [];
-    for (var i = 0; i < data.logs.length; i++) {
-      var log = data.logs[i];
-      var stackShort = log.stack_trace ? log.stack_trace.substring(0, 80) : "-";
-      var stateShort = log.game_state ? log.game_state.substring(0, 60) : "-";
-      tableData.push({
-        id: log.hash,
-        time: new Date(log.created_at).toLocaleString(),
-        mod_id: log.mod_id, mod_ver: log.mod_version, game_ver: log.game_version || "-",
-        error: log.error_message, stack: stackShort, state: stateShort,
-        os: log.player_os || "-", os_ver: log.os_version || "-",
-        count: log.count, hash: log.hash.substring(0, 8),
-        _lang: currentLang
-      });
+  var savedSize = parseInt(sessionStorage.getItem("browse_page_size") || "20");
+  if (isNaN(savedSize) || savedSize < 10) savedSize = 20;
+
+  container.innerHTML = '<div class="empty-state"><p>' + s("admin.browse.loading") + '</p></div>';
+
+  if (typeof Tabulator === "undefined") {
+    container.innerHTML = '<div class="result error">Tabulator library failed to load</div>';
+    return;
+  }
+
+  var table = new Tabulator("#browse-container", {
+    ajaxURL: "/admin/browse?token=" + encodeURIComponent(token),
+    ajaxParams: {},
+    pagination: "remote",
+    paginationSize: savedSize,
+    paginationSizeSelector: [10, 20, 50],
+    paginationCounter: "rows",
+    ajaxSorting: true,
+    layout: "fitDataFill",
+    resizableColumns: true,
+    height: "auto",
+    columns: [
+      {title:s("admin.browse.col_time"), field:"time", width:140, minWidth:80, headerSort:true, sorter:"number", formatter:function(c){return c.getValue()?new Date(c.getValue()).toLocaleString():"";}},
+      {title:s("admin.browse.col_mod"), field:"mod_id", width:90, minWidth:50, headerSort:true},
+      {title:s("admin.browse.col_version"), field:"mod_ver", width:80, minWidth:50, headerSort:true},
+      {title:s("admin.browse.col_game_version"), field:"game_ver", width:80, minWidth:50, headerSort:true},
+      {title:s("admin.browse.col_error"), field:"error", widthGrow:3, minWidth:80, tooltip:true, formatter:"textarea"},
+      {title:s("admin.browse.col_stack"), field:"stack", widthGrow:3, minWidth:80, tooltip:true},
+      {title:s("admin.browse.col_state"), field:"state", widthGrow:2, minWidth:60, tooltip:true},
+      {title:s("admin.browse.col_os"), field:"os", width:80, minWidth:50, headerSort:true},
+      {title:s("admin.browse.col_os_ver"), field:"os_ver", width:80, minWidth:50, headerSort:true},
+      {title:s("admin.browse.col_count"), field:"count", width:60, minWidth:40, hozAlign:"center", headerSort:true},
+      {title:s("admin.browse.col_hash"), field:"hash", width:70, minWidth:50, headerSort:true}
+    ],
+    rowFormatter: function(row) {
+      row.getElement().dataset.id = row.getData().id;
+      row.getElement().dataset.lang = row.getData()._lang || "";
+    },
+    pageLoaded: function(pgnum) {
+      // Restore saved page size after Tabulator resets it
+    },
+    paginationSizeSet: function(size) {
+      sessionStorage.setItem("browse_page_size", String(size));
     }
-    container.innerHTML = "";
-    if (typeof Tabulator !== "undefined") {
-      new Tabulator("#browse-container", {
-        data: tableData, layout: "fitDataFill", resizableColumns: true, height: "auto",
-        columns: [
-          {title:s("admin.browse.col_time"), field:"time", width:140, minWidth:80, headerSort:true},
-          {title:s("admin.browse.col_mod"), field:"mod_id", width:90, minWidth:50},
-          {title:s("admin.browse.col_version"), field:"mod_ver", width:80, minWidth:50},
-          {title:s("admin.browse.col_game_version"), field:"game_ver", width:80, minWidth:50},
-          {title:s("admin.browse.col_error"), field:"error", widthGrow:3, minWidth:80, tooltip:true, formatter:"textarea"},
-          {title:s("admin.browse.col_stack"), field:"stack", widthGrow:3, minWidth:80, tooltip:true},
-          {title:s("admin.browse.col_state"), field:"state", widthGrow:2, minWidth:60, tooltip:true},
-          {title:s("admin.browse.col_os"), field:"os", width:80, minWidth:50},
-          {title:s("admin.browse.col_os_ver"), field:"os_ver", width:80, minWidth:50},
-          {title:s("admin.browse.col_count"), field:"count", width:60, minWidth:40, hozAlign:"center"},
-          {title:s("admin.browse.col_hash"), field:"hash", width:70, minWidth:50}
-        ],
-        rowFormatter: function(row) {
-          row.getElement().dataset.id = row.getData().id;
-          row.getElement().dataset.lang = row.getData()._lang || "";
-        }
-      });
-      container.addEventListener("click", function(ev) {
-        var row = ev.target.closest(".tabulator-row");
-        if (row && row.dataset.id) viewLog(row.dataset.id, "browse", row.dataset.lang);
-      });
-    } else {
-      var h = '<table style="font-size:0.75rem;width:100%;"><thead><tr><th>' + s("admin.browse.col_time") + '</th><th>' + s("admin.browse.col_mod") + '</th><th>' + s("admin.browse.col_error") + '</th><th>' + s("admin.browse.col_count") + '</th></tr></thead><tbody>';
-      for (var fi = 0; fi < tableData.length; fi++) {
-        h += '<tr data-hash="' + tableData[fi].id + '" data-lang="' + tableData[fi]._lang + '" class="browse-row" style="cursor:pointer;"><td>' + htm(tableData[fi].time) + '</td><td>' + htm(tableData[fi].mod_id) + '</td><td>' + htm(tableData[fi].error) + '</td><td>' + tableData[fi].count + '</td></tr>';
-      }
-      h += '</tbody></table>';
-      container.innerHTML = h;
-      container.addEventListener("click", function(ev) {
-        var row = ev.target.closest(".browse-row");
-        if (row && row.dataset.hash) viewLog(row.dataset.hash, "browse", row.dataset.lang);
-      });
-    }
-    var p = document.createElement("p");
-    p.style.cssText = "color:#64748b;font-size:0.75rem;margin-top:0.5rem;";
-    p.textContent = s("admin.browse.total").replace("{count}", data.logs.length);
-    container.appendChild(p);
-  } catch(e) { container.innerHTML = '<div class="result error">' + s("error.network").replace("{msg}", e.message) + '</div>'; }
+  });
+
+  container.addEventListener("click", function(ev) {
+    var row = ev.target.closest(".tabulator-row");
+    if (row && row.dataset.id) viewLog(row.dataset.id, "browse", row.dataset.lang);
+  });
 }
 document.addEventListener("DOMContentLoaded", function() {
   if (document.getElementById("browse-container")) loadBrowseData();

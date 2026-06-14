@@ -81,7 +81,9 @@
   "admin.browse.col_os_ver": "OS Version",
   "admin.browse.col_count": "Count",
   "admin.browse.col_hash": "Hash",
-  "admin.browse.total": "{count} records. Click a row to view details.",
+  "admin.browse.total": "{count} records",
+  "admin.browse.page_of": "Page {page} / {last}",
+  "admin.browse.rows": "rows/page",
 
   "detail.page.title": "Log Details - Ariya",
   "detail.back": "Back to admin panel",

@@ -86,10 +86,57 @@ export async function handleAdminLogs(env: Env): Promise<Response> {
 	}
 }
 
-export async function handleBrowseLogs(env: Env): Promise<Response> {
+const SORT_MAP: Record<string, string> = {
+	time: "created_at", mod_id: "mod_id", mod_ver: "mod_version",
+	game_ver: "game_version", error: "error_message", stack: "stack_trace",
+	state: "game_state", os: "player_os", os_ver: "os_version",
+	count: "count", hash: "hash",
+};
+
+const ALLOWED_DIRS = ["asc", "desc"];
+
+export async function handleBrowseLogs(env: Env, request: Request): Promise<Response> {
 	try {
-		const result = await env.DB.prepare("SELECT hash, mod_id, mod_version, game_version, error_message, stack_trace, game_state, player_os, os_version, count, created_at FROM mod_errors ORDER BY created_at DESC LIMIT 100").all();
-		return new Response(JSON.stringify({ logs: result.results }), { headers: { "Content-Type": "application/json" } });
+		const url = new URL(request.url);
+		const page = Math.max(1, parseInt(url.searchParams.get("page") || "") || 1);
+		const size = Math.min(100, Math.max(10, parseInt(url.searchParams.get("size") || "") || 20));
+		const sortField = SORT_MAP[url.searchParams.get("sort[0][field]") || ""] || "created_at";
+		const sortDir = ALLOWED_DIRS.includes(url.searchParams.get("sort[0][dir]") || "") ? url.searchParams.get("sort[0][dir]")! : "desc";
+		const offset = (page - 1) * size;
+
+		const countResult = await env.DB.prepare("SELECT COUNT(*) as total FROM mod_errors").first<number>("total");
+		const total = countResult || 0;
+		const lastPage = Math.max(1, Math.ceil(total / size));
+
+		const rows = await env.DB.prepare(
+			`SELECT hash, mod_id, mod_version, game_version, error_message, stack_trace, game_state, player_os, os_version, count, created_at
+			 FROM mod_errors ORDER BY ${sortField} ${sortDir} LIMIT ? OFFSET ?`
+		).bind(size, offset).all();
+
+		const data = rows.results.map((r: any) => ({
+			id: r.hash,
+			time: new Date(r.created_at).getTime(),
+			time_display: new Date(r.created_at).toLocaleString(),
+			mod_id: r.mod_id,
+			mod_ver: r.mod_version,
+			game_ver: r.game_version || "-",
+			error: r.error_message,
+			stack: r.stack_trace ? r.stack_trace.substring(0, 80) : "-",
+			stack_full: r.stack_trace,
+			state: r.game_state ? r.game_state.substring(0, 60) : "-",
+			state_full: r.game_state,
+			os: r.player_os || "-",
+			os_ver: r.os_version || "-",
+			count: r.count,
+			hash: r.hash.substring(0, 8),
+			_lang: "",
+		}));
+
+		return new Response(JSON.stringify({
+			data,
+			total,
+			last_page: lastPage,
+		}), { headers: { "Content-Type": "application/json" } });
 	} catch (e: any) {
 		return new Response(JSON.stringify({ error: e.message }), { status: 500 });
 	}
