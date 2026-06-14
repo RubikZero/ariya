@@ -439,6 +439,7 @@ async function loadBrowseData() {
     return;
   }
 
+
   var table = new Tabulator("#browse-container", {
     ajaxURL: "/admin/browse?token=" + encodeURIComponent(token),
     ajaxParams: {},
@@ -447,6 +448,7 @@ async function loadBrowseData() {
     paginationSizeSelector: [10, 20, 50],
     paginationCounter: "rows",
     ajaxSorting: true,
+    paginationCounter: "rows",
     layout: "fitDataFill",
     resizableColumns: true,
     height: "auto",
@@ -472,8 +474,21 @@ async function loadBrowseData() {
     },
     paginationSizeSet: function(size) {
       sessionStorage.setItem("browse_page_size", String(size));
+    },
+    renderComplete: function() {
+      var el = document.getElementById("browse-total");
+      if (el && table) {
+        var total = table.getDataCount(true) || 0;
+        el.textContent = s("admin.browse.total").replace("{count}", String(total));
+      }
     }
   });
+
+  var totalEl = document.createElement("p");
+  totalEl.id = "browse-total";
+  totalEl.style.cssText = "color:#64748b;font-size:0.75rem;margin-top:0.5rem;";
+  totalEl.textContent = "";
+  container.appendChild(totalEl);
 
   container.addEventListener("click", function(ev) {
     var row = ev.target.closest(".tabulator-row");
