@@ -163,15 +163,20 @@ describe("Ariya log endpoint", () => {
 		expect(logsJson.logs).toBeDefined();
 		expect(logsJson.logs.length).toBeGreaterThan(0);
 
-		// Browse data endpoint (POST with pagination → valid JSON with data/total/last_page)
+		// Browse data endpoint (Tabulator remote pagination format)
 		const r10 = await worker.fetch(new IncomingRequest("http://example.com/admin/browse?token=" + encodeURIComponent(token) + "&_ajax=1&page=1&size=10&sort%5B0%5D%5Bfield%5D=time&sort%5B0%5D%5Bdir%5D=desc"), env, createExecutionContext());
 		expect(r10.status).toBe(200);
-		const contentType = r10.headers.get("content-type") || "";
-		expect(contentType).toContain("application/json");
+		expect(r10.headers.get("content-type")).toContain("application/json");
 		const browseData = await r10.json() as any;
-		expect(browseData.data).toBeDefined();
+		// Tabulator remote pagination expects: { data: [], total: N, last_page: N }
+		expect(browseData).toHaveProperty("data");
 		expect(Array.isArray(browseData.data)).toBe(true);
+		expect(browseData.data.length).toBeGreaterThan(0);
+		expect(typeof browseData.total).toBe("number");
 		expect(browseData.total).toBeGreaterThan(0);
+		expect(typeof browseData.last_page).toBe("number");
 		expect(browseData.last_page).toBeGreaterThan(0);
+		expect(browseData.data[0]).toHaveProperty("id");
+		expect(browseData.data[0]).toHaveProperty("time");
 	});
 });

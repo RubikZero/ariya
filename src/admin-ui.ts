@@ -445,13 +445,6 @@ async function loadBrowseData() {
     return;
   }
 
-  var allData = [];
-  try {
-    var r = await fetch("/admin/browse?token=" + encodeURIComponent(token) + "&_ajax=1&page=1&size=2000&sort%5B0%5D%5Bfield%5D=time&sort%5B0%5D%5Bdir%5D=desc");
-    var j = await r.json();
-    allData = j.data || [];
-  } catch(e) {}
-
   var paginationLocale = {
     "pagination": {
       "page_size": s("admin.browse.rows"),
@@ -462,6 +455,13 @@ async function loadBrowseData() {
       "counter": { "showing": "", "of": "", "rows": "", "pages": "" }
     }
   };
+  var allData = [];
+  try {
+    var r = await fetch("/admin/browse?token=" + encodeURIComponent(token) + "&_ajax=1&page=1&size=2000&sort%5B0%5D%5Bfield%5D=time&sort%5B0%5D%5Bdir%5D=desc");
+    var j = await r.json();
+    allData = j.data || [];
+  } catch(e) {}
+
   var table = new Tabulator("#browse-container", {
     data: allData,
     locale: true,
@@ -495,8 +495,9 @@ async function loadBrowseData() {
     dataLoaded: function() {
       var el = document.getElementById("browse-total");
       if (el) el.textContent = s("admin.browse.total").replace("{count}", String(allData.length));
-    }
+    },
   });
+
   var tot = document.createElement("p");
   tot.id = "browse-total";
   tot.style.cssText = "color:#64748b;font-size:0.75rem;margin-top:0.5rem;";
