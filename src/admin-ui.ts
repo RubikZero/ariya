@@ -443,6 +443,13 @@ async function loadBrowseData() {
     return;
   }
 
+  var allData = [];
+  try {
+    var r = await fetch("/admin/browse?token=" + encodeURIComponent(token) + "&_ajax=1&page=1&size=2000&sort%5B0%5D%5Bfield%5D=time&sort%5B0%5D%5Bdir%5D=desc");
+    var j = await r.json();
+    allData = (j.data || []).map(function(d) { d._lang = d._lang || ""; return d; });
+  } catch(e) {}
+
   var gridDiv = document.createElement("div");
   gridDiv.id = "browse-grid";
   gridDiv.className = "ag-theme-alpine-dark";
@@ -451,55 +458,32 @@ async function loadBrowseData() {
   container.innerHTML = "";
   container.appendChild(gridDiv);
 
-  var api = null;
-  var gridOptions = {
+  agGrid.createGrid(gridDiv, {
     columnDefs: [
       {field:"time", headerName:s("admin.browse.col_time"), width:140, sortable:true, cellRenderer:function(p){return p.value?new Date(p.value).toLocaleString():"";}},
       {field:"mod_id", headerName:s("admin.browse.col_mod"), width:90, sortable:true},
       {field:"mod_ver", headerName:s("admin.browse.col_version"), width:80, sortable:true},
       {field:"game_ver", headerName:s("admin.browse.col_game_version"), width:80, sortable:true},
-      {field:"error", headerName:s("admin.browse.col_error"), flex:3, minWidth:80, tooltipField:"error"},
-      {field:"stack", headerName:s("admin.browse.col_stack"), flex:3, minWidth:80, tooltipField:"stack"},
-      {field:"state", headerName:s("admin.browse.col_state"), flex:2, minWidth:60, tooltipField:"state"},
+      {field:"error", headerName:s("admin.browse.col_error"), flex:3, minWidth:80},
+      {field:"stack", headerName:s("admin.browse.col_stack"), flex:3, minWidth:80},
+      {field:"state", headerName:s("admin.browse.col_state"), flex:2, minWidth:60},
       {field:"os", headerName:s("admin.browse.col_os"), width:80, sortable:true},
       {field:"os_ver", headerName:s("admin.browse.col_os_ver"), width:80, sortable:true},
       {field:"count", headerName:s("admin.browse.col_count"), width:60, sortable:true},
       {field:"hash", headerName:s("admin.browse.col_hash"), width:70, sortable:true}
     ],
     defaultColDef: { resizable: true },
+    rowData: allData,
     pagination: true,
     paginationPageSize: savedSize,
     paginationPageSizeSelector: [10, 20, 50],
-    onPaginationChanged: function() {
-      if (api) sessionStorage.setItem("browse_page_size", String(api.paginationGetPageSize()));
+    onPaginationChanged: function(ev) {
+      try { sessionStorage.setItem("browse_page_size", String(ev.api.paginationGetPageSize())); } catch(e) {}
     },
     onRowClicked: function(event) {
-      var d = event.data;
-      if (d && d.id) viewLog(d.id, "browse", d._lang || "");
-    },
-    onGridReady: function(event) {
-      api = event.api;
-      var datasource = {
-        getRows: function(params) {
-          var size = params.endRow - params.startRow;
-          var page = Math.floor(params.startRow / size) + 1;
-          var sortStr = "";
-          if (params.sortModel && params.sortModel.length) {
-            sortStr = "&sort[0][field]=" + encodeURIComponent(params.sortModel[0].colId) + "&sort[0][dir]=" + encodeURIComponent(params.sortModel[0].sort);
-          }
-          fetch("/admin/browse?token=" + encodeURIComponent(token) + "&_ajax=1&page=" + page + "&size=" + size + sortStr)
-            .then(function(r){ return r.json(); })
-            .then(function(data) {
-              params.successCallback(data.data || [], data.total || 0);
-            })
-            .catch(function() { params.failCallback(); });
-        }
-      };
-      event.api.setGridOption("serverSideDatasource", datasource);
-      event.api.setGridOption("rowModelType", "serverSide");
+      if (event.data && event.data.id) viewLog(event.data.id, "browse", event.data._lang || "");
     }
-  };
-  new agGrid.Grid(gridDiv, gridOptions);
+  });
 }
 document.addEventListener("DOMContentLoaded", function() {
   if (document.getElementById("browse-container")) loadBrowseData();
