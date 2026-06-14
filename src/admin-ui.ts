@@ -443,14 +443,6 @@ async function loadBrowseData() {
     return;
   }
 
-  var allData = [];
-  try {
-    var r = await fetch("/admin/browse?token=" + encodeURIComponent(token) + "&_ajax=1&page=1&size=2000&sort%5B0%5D%5Bfield%5D=time&sort%5B0%5D%5Bdir%5D=desc");
-    if (!r.ok) { container.innerHTML = '<div class="result error">' + s("admin.browse.unauthorized") + '</div>'; return; }
-    var j = await r.json();
-    allData = (j.data || []).map(function(d) { d._lang = d._lang || ""; return d; });
-  } catch(e) { container.innerHTML = '<div class="result error">' + s("error.network").replace("{msg}", e.message) + '</div>'; return; }
-
   container.innerHTML = "";
 
   var gridDiv = document.createElement("div");
@@ -478,12 +470,33 @@ async function loadBrowseData() {
     ],
     domLayout: "normal",
     defaultColDef: { resizable: true },
-    rowData: allData,
+    rowModelType: "infinite",
+    cacheBlockSize: savedSize,
+    maxBlocksInCache: 1,
     pagination: true,
     paginationPageSize: savedSize,
     paginationPageSizeSelector: [10, 20, 50],
+    datasource: {
+      getRows: function(params) {
+        var size = params.endRow - params.startRow;
+        var page = Math.floor(params.startRow / size) + 1;
+        var sortStr = "";
+        if (params.sortModel && params.sortModel.length) {
+          sortStr = "&sort[0][field]=" + encodeURIComponent(params.sortModel[0].colId) + "&sort[0][dir]=" + encodeURIComponent(params.sortModel[0].sort);
+        }
+        fetch("/admin/browse?token=" + encodeURIComponent(token) + "&_ajax=1&page=" + page + "&size=" + size + sortStr)
+          .then(function(r){ return r.json(); })
+          .then(function(data) {
+            params.successCallback(data.data || [], data.total || 0);
+          })
+          .catch(function() { params.failCallback(); });
+      }
+    },
     onPaginationChanged: function(ev) {
-      try { sessionStorage.setItem("browse_page_size", String(ev.api.paginationGetPageSize())); } catch(e) {}
+      try {
+        var newSize = ev.api.paginationGetPageSize();
+        sessionStorage.setItem("browse_page_size", String(newSize));
+      } catch(e) {}
     },
     onRowClicked: function(event) {
       if (event.data && event.data.id) viewLog(event.data.id, "browse", event.data._lang || "");
