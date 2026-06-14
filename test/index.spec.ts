@@ -162,5 +162,16 @@ describe("Ariya log endpoint", () => {
 		const logsJson = await r9.json() as any;
 		expect(logsJson.logs).toBeDefined();
 		expect(logsJson.logs.length).toBeGreaterThan(0);
+
+		// Browse data endpoint (POST with pagination → valid JSON with data/total/last_page)
+		const r10 = await worker.fetch(new IncomingRequest("http://example.com/admin/browse?token=" + encodeURIComponent(token) + "&page=1&size=10&sort%5B0%5D%5Bfield%5D=time&sort%5B0%5D%5Bdir%5D=desc", { method: "POST" }), env, createExecutionContext());
+		expect(r10.status).toBe(200);
+		const contentType = r10.headers.get("content-type") || "";
+		expect(contentType).toContain("application/json");
+		const browseData = await r10.json() as any;
+		expect(browseData.data).toBeDefined();
+		expect(Array.isArray(browseData.data)).toBe(true);
+		expect(browseData.total).toBeGreaterThan(0);
+		expect(browseData.last_page).toBeGreaterThan(0);
 	});
 });

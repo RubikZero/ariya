@@ -442,7 +442,7 @@ async function loadBrowseData() {
 
   var table = new Tabulator("#browse-container", {
     ajaxURL: "/admin/browse?token=" + encodeURIComponent(token),
-    ajaxParams: {},
+    ajaxConfig: "POST",
     pagination: "remote",
     paginationSize: savedSize,
     paginationSizeSelector: [10, 20, 50],
