@@ -1,4 +1,4 @@
-[🇨🇳 中文](README.md) | [🇬🇧 English](README.en.md)
+[中文](README.md) | [English](README.en.md)
 
 ---
 
@@ -200,9 +200,25 @@ Passwords are stored as PBKDF2 salted hashes. A session token (HMAC-signed, 24-h
 
 - **🔑 Generate HMAC Key** — Generate a 256-bit key in the browser with one click
 - **📤 Test Submission** — Send a sample log from the browser to verify the end-to-end flow
-- **📋 Recent Submissions** — View the last 50 log records (including error count)
+- **📋 Recent Submissions** — View the last 50 logs on the dashboard (including error count)
 
-> Both methods can be enabled simultaneously. Access takes priority.
+### Log Browser
+
+Click **Log Browser** in the sidebar. Displays all fields for every log entry (time, mod, version, game version, error message, stack trace, game state, OS, etc.). Supports:
+
+- **Column resizing** — Drag column header edges to adjust width
+- **Sorting** — Click a column header to sort by that column
+- **Detail navigation** — Click any row to view the full log details
+
+### Log Detail
+
+The detail page has three sections:
+
+- **Basic Info** — Time, mod, version, game version, error count, OS, hash
+- **Error Details** — Full stack trace, first line highlighted in red
+- **Game State** — JSON automatically parsed into a readable table (scene, seed, ascension, floor, characters, HP, etc.)
+
+> Both authentication methods can be enabled simultaneously. Access takes priority.
 
 ---
 
@@ -246,4 +262,4 @@ Get your API token: https://dash.cloudflare.com/profile/api-tokens
 
 ---
 
-[🇨🇳 中文](README.md) | [🇬🇧 English](README.en.md)
+[中文](README.md) | [English](README.en.md)
