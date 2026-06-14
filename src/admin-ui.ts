@@ -440,18 +440,18 @@ async function loadBrowseData() {
   }
 
 
+  var allData = [];
+  try {
+    var resp = await fetch("/admin/browse?token=" + encodeURIComponent(token) + "&_ajax=1&page=1&size=500&sort[0][field]=time&sort[0][dir]=desc");
+    var json = await resp.json();
+    allData = json.data || [];
+  } catch(e) {}
+
   var table = new Tabulator("#browse-container", {
-    ajaxURLGenerator: function(url, config, params) {
-      params.token = token;
-      params._ajax = "1";
-      return url + "?" + Object.entries(params).map(function(e){return encodeURIComponent(e[0])+"="+encodeURIComponent(e[1]);}).join("&");
-    },
-    ajaxURL: "/admin/browse",
-    ajaxConfig: "GET",
-    pagination: "remote",
+    data: allData,
+    pagination: "local",
     paginationSize: savedSize,
     paginationSizeSelector: [10, 20, 50],
-    ajaxSorting: true,
     paginationCounter: "rows",
     layout: "fitDataFill",
     resizableColumns: true,
@@ -473,18 +473,10 @@ async function loadBrowseData() {
       row.getElement().dataset.id = row.getData().id;
       row.getElement().dataset.lang = row.getData()._lang || "";
     },
-    pageLoaded: function(pgnum) {
-      // Restore saved page size after Tabulator resets it
-    },
-    paginationSizeSet: function(size) {
-      sessionStorage.setItem("browse_page_size", String(size));
-    },
-    renderComplete: function() {
+    dataLoaded: function() {
       var el = document.getElementById("browse-total");
-      if (el && table) {
-        var total = table.getDataCount(true) || 0;
-        el.textContent = s("admin.browse.total").replace("{count}", String(total));
-      }
+      if (el) el.textContent = s("admin.browse.total").replace("{count}", String(allData.length));
+      sessionStorage.setItem("browse_page_size", String(this.options.paginationSize));
     }
   });
 
