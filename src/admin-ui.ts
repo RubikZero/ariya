@@ -440,13 +440,17 @@ async function loadBrowseData() {
   }
 
 
+  var encToken = encodeURIComponent(token);
   var table = new Tabulator("#browse-container", {
+    ajaxURLGenerator: function(url, config, params) {
+      params.token = token;
+      return url + "?" + Object.entries(params).map(function(e){return encodeURIComponent(e[0])+"="+encodeURIComponent(e[1]);}).join("&");
+    },
     ajaxURL: "/admin/browse",
     ajaxConfig: "GET",
     pagination: "remote",
     paginationSize: savedSize,
     paginationSizeSelector: [10, 20, 50],
-    paginationCounter: "rows",
     ajaxSorting: true,
     paginationCounter: "rows",
     layout: "fitDataFill",
