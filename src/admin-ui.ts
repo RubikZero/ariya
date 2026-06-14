@@ -46,9 +46,12 @@ tr:hover td { background:rgba(51,65,85,0.5); }
 .sidebar .toggle-btn { background:none; border:none; color:#64748b; cursor:pointer; font-size:1rem; padding:0.25rem; border-radius:0.25rem; margin-bottom:0.5rem; text-align:center; width:100%; }
 .sidebar .toggle-btn:hover { background:#334155; color:#e2e8f0; }
 .sidebar.collapsed .nav-item { justify-content:center; padding:0.5rem 0; gap:0; }
-.tabulator .tabulator-footer .tabulator-paginator { flex-wrap:nowrap; white-space:nowrap; gap:0.25rem; }
-.tabulator .tabulator-footer .tabulator-page-size { margin-right:0; }
-.tabulator .tabulator-footer .tabulator-page-size select { margin:0 0.25rem; }
+.tabulator .tabulator-footer .tabulator-paginator { display:flex !important; flex-direction:row !important; flex-wrap:nowrap !important; align-items:center; white-space:nowrap; gap:0.25rem; }
+.tabulator .tabulator-footer .tabulator-page-size { display:flex !important; flex-direction:row !important; align-items:center; flex-shrink:0; }
+.tabulator .tabulator-footer .tabulator-page-size label { display:inline !important; margin:0; }
+.tabulator .tabulator-footer .tabulator-page-size select { display:inline !important; width:auto !important; margin:0 0.25rem; }
+.tabulator .tabulator-footer .tabulator-pages { display:flex !important; flex-direction:row !important; flex-wrap:nowrap !important; gap:0.125rem; }
+.tabulator .tabulator-footer .tabulator-page-counter { flex-shrink:0; margin-left:auto; }
 .sidebar.collapsed .nav-item:hover { padding:0.5rem 0; }
 .content { flex:1; padding:1.5rem; overflow-x:auto; }
 th { position:relative; user-select:none; }
