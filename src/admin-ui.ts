@@ -442,7 +442,7 @@ async function loadBrowseData() {
 
   var allData = [];
   try {
-    var resp = await fetch("/admin/browse?token=" + encodeURIComponent(token) + "&_ajax=1&page=1&size=500&sort[0][field]=time&sort[0][dir]=desc");
+    var resp = await fetch("/admin/browse?token=" + encodeURIComponent(token) + "&_ajax=1&page=1&size=2000&sort[0][field]=time&sort[0][dir]=desc");
     var json = await resp.json();
     allData = json.data || [];
   } catch(e) {}

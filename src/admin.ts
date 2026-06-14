@@ -99,7 +99,7 @@ export async function handleBrowseLogs(env: Env, request: Request): Promise<Resp
 	try {
 		const url = new URL(request.url);
 		const page = Math.max(1, parseInt(url.searchParams.get("page") || "") || 1);
-		const size = Math.min(500, Math.max(10, parseInt(url.searchParams.get("size") || "") || 20));
+		const size = Math.min(2000, Math.max(10, parseInt(url.searchParams.get("size") || "") || 20));
 		const sortField = SORT_MAP[url.searchParams.get("sort[0][field]") || ""] || "created_at";
 		const sortDir = ALLOWED_DIRS.includes(url.searchParams.get("sort[0][dir]") || "") ? url.searchParams.get("sort[0][dir]")! : "desc";
 		const offset = (page - 1) * size;
