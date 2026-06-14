@@ -440,19 +440,15 @@ async function loadBrowseData() {
   }
 
 
-  var allData = [];
-  try {
-    var resp = await fetch("/admin/browse?token=" + encodeURIComponent(token) + "&_ajax=1&page=1&size=2000&sort[0][field]=time&sort[0][dir]=desc");
-    var json = await resp.json();
-    allData = json.data || [];
-  } catch(e) {}
-
   var table = new Tabulator("#browse-container", {
-    data: allData,
-    pagination: "local",
+    ajaxURL: "/admin/browse",
+    ajaxParams: { token: token, _ajax: "1" },
+    ajaxConfig: "GET",
+    pagination: "remote",
     paginationSize: savedSize,
     paginationSizeSelector: [10, 20, 50],
     paginationCounter: "rows",
+    ajaxSorting: true,
     layout: "fitDataFill",
     resizableColumns: true,
     height: "auto",
@@ -473,18 +469,10 @@ async function loadBrowseData() {
       row.getElement().dataset.id = row.getData().id;
       row.getElement().dataset.lang = row.getData()._lang || "";
     },
-    dataLoaded: function() {
-      var el = document.getElementById("browse-total");
-      if (el) el.textContent = s("admin.browse.total").replace("{count}", String(allData.length));
-      sessionStorage.setItem("browse_page_size", String(this.options.paginationSize));
+    paginationSizeSet: function(size) {
+      sessionStorage.setItem("browse_page_size", String(size));
     }
   });
-
-  var totalEl = document.createElement("p");
-  totalEl.id = "browse-total";
-  totalEl.style.cssText = "color:#64748b;font-size:0.75rem;margin-top:0.5rem;";
-  totalEl.textContent = "";
-  container.appendChild(totalEl);
 
   container.addEventListener("click", function(ev) {
     var row = ev.target.closest(".tabulator-row");
