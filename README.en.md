@@ -8,7 +8,7 @@
 
 Ariya is a lightweight log collection server designed for **Slay the Spire 2** mods. When the mod catches an in-game exception, it securely uploads the error details (stack trace, game state, runtime environment, etc.) to the Ariya server via HMAC-signed requests. Logs are stored in Cloudflare D1, making it easy for developers to review and analyze errors centrally.
 
-> The project is named after **Iwanaga Ariya**, the Stage 6 Boss of *Touhou Kinshoukyou*. She is the master of Asama Joue Zan (浅間浄穢山, "Purification Mountain"), a device that collects and processes information. As a database for collecting error logs, this project shares the same concept, hence the name.
+> The project is named after **Iwanaga Ariya**, the Stage 6 Boss of *Touhou Kinjoukyou*. She is the master of Asama Joue Zan (浅間浄穢山, "Purification Mountain"), a device that collects and processes information. As a database for collecting error logs, this project shares the same concept, hence the name.
 
 ---
 
@@ -28,9 +28,9 @@ Ariya is a lightweight log collection server designed for **Slay the Spire 2** m
 ## Architecture Overview
 
 ```
-┌─────────────┐     HMAC-SHA256 Signature    ┌──────────────────┐
+┌─────────────┐   HMAC-SHA256 Signature   ┌──────────────────┐
 │  STS2 Mod   │ ────── POST / ──────────→ │  Ariya Worker    │
-│  (C#)       │   X-Mod-Signature Header    │  (Cloudflare)    │
+│  (C#)       │   X-Mod-Signature Header  │  (Cloudflare)    │
 └─────────────┘                           │                  │
                                           │  ┌────────────┐  │
                                           │  │  D1 DB     │  │
@@ -38,8 +38,8 @@ Ariya is a lightweight log collection server designed for **Slay the Spire 2** m
                                           └──────────────────┘
                                                    │
                                           ┌────────┴────────┐
-                                          │  Admin Panel     │
-                                          │  GET /admin      │
+                                          │  Admin Panel    │
+                                          │  GET /admin     │
                                           └─────────────────┘
 ```
 
