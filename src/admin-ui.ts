@@ -51,7 +51,6 @@ tr:hover td { background:rgba(51,65,85,0.5); }
 th { position:relative; user-select:none; }
 .resizer { position:absolute; right:0; top:0; bottom:0; width:5px; cursor:col-resize; z-index:1; }
 .resizer:hover, .resizing .resizer { background:rgba(59,130,246,0.4); }
-td { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 `;
 
 const DISABLED_PAGE = (lang: Lang) => `
@@ -283,6 +282,7 @@ function renderHtml(content: string, token: string, lang: Lang, authed: boolean 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>${htm(t("admin.page.title", lang))}</title>
+<link href="https://unpkg.com/tabulator-tables@6.3.1/dist/css/tabulator_midnight.min.css" rel="stylesheet">
 <style>${STYLE}</style>
 </head>
 <body>
@@ -294,6 +294,7 @@ function renderHtml(content: string, token: string, lang: Lang, authed: boolean 
   <select onchange="switchLang(this.value)" style="background:#0f172a;color:#e2e8f0;border:1px solid #475569;border-radius:0.375rem;padding:0.375rem 0.75rem;font-size:0.8125rem;cursor:pointer;">${LANGUAGES.map(l => `<option value="${l.code}" ${lang === l.code ? "selected" : ""}>${htm(l.name)}</option>`).join("")}</select>
 </header>
 ${mainContent}
+<script src="https://unpkg.com/tabulator-tables@6.3.1/dist/js/tabulator.min.js"></script>
 <script>
 const TOKEN = ${tokenJs};
 const LANG = ${langJs};
@@ -425,50 +426,6 @@ async function loadLogs() {
     container.innerHTML = h;
   } catch(e) { container.innerHTML = '<div class="result error">' + s("error.network").replace("{msg}", e.message) + '</div>'; }
 }
-function makeResizable(id) {
-  var table = document.getElementById(id);
-  if (!table) return;
-  var cols = table.querySelectorAll("th");
-  var saved = sessionStorage.getItem("col_widths_" + id);
-  if (saved) {
-    var widths = JSON.parse(saved);
-    for (var ci = 0; ci < cols.length && ci < widths.length; ci++) {
-      cols[ci].style.width = widths[ci] + "px";
-    }
-  } else {
-    var totalW = table.offsetWidth || 800;
-    var each = Math.max(40, Math.floor(totalW / cols.length));
-    for (var ci = 0; ci < cols.length; ci++) {
-      cols[ci].style.width = each + "px";
-    }
-  }
-  for (var ci = 0; ci < cols.length; ci++) {
-    var resizer = cols[ci].querySelector(".resizer");
-    if (!resizer) continue;
-    resizer.addEventListener("mousedown", function(e) {
-      e.preventDefault();
-      var th = this.parentElement;
-      var startX = e.clientX;
-      var startW = th.offsetWidth;
-      function onMove(ev) {
-        var w = Math.max(30, startW + ev.clientX - startX);
-        th.style.width = w + "px";
-        th.style.maxWidth = w + "px";
-        table.classList.add("resizing");
-      }
-      function onUp() {
-        document.removeEventListener("mousemove", onMove);
-        document.removeEventListener("mouseup", onUp);
-        table.classList.remove("resizing");
-        var newWidths = [];
-        for (var c = 0; c < cols.length; c++) newWidths.push(cols[c].offsetWidth);
-        sessionStorage.setItem("col_widths_" + id, JSON.stringify(newWidths));
-      }
-      document.addEventListener("mousemove", onMove);
-      document.addEventListener("mouseup", onUp);
-    });
-  }
-}
 async function loadBrowseData() {
   var container = document.getElementById("browse-container");
   if (!container) return;
@@ -479,31 +436,51 @@ async function loadBrowseData() {
     if (resp.status === 401) { container.innerHTML = '<div class="result error">' + s("admin.browse.unauthorized") + '</div>'; return; }
     var data = await resp.json();
     if (!data.logs || !data.logs.length) { container.innerHTML = '<div class="empty-state"><p>' + s("admin.browse.empty") + '</p></div>'; return; }
-    var cols = [s("admin.browse.col_time"), s("admin.browse.col_mod"), s("admin.browse.col_version"), s("admin.browse.col_game_version"), s("admin.browse.col_error"), s("admin.browse.col_stack"), s("admin.browse.col_state"), s("admin.browse.col_os"), s("admin.browse.col_os_ver"), s("admin.browse.col_count"), s("admin.browse.col_hash")];
-    var h = '<table id="browse-table" style="font-size:0.75rem;table-layout:fixed;"><thead><tr>';
-    for (var ci = 0; ci < cols.length; ci++) {
-      h += '<th id="bc-' + ci + '">' + cols[ci] + '<div class="resizer"></div></th>';
-    }
-    h += '</tr></thead><tbody>';
+    var currentLang = (document.getElementById("lang-select") || {}).value || (location.href.match(/[?&]lang=([^&]+)/) || [])[1] || "";
+    var tableData = [];
     for (var i = 0; i < data.logs.length; i++) {
       var log = data.logs[i];
-      var currentLang = (document.getElementById("lang-select") || {}).value || (location.href.match(/[?&]lang=([^&]+)/) || [])[1] || "";
-      h += '<tr data-hash="'+htm(log.hash)+'" data-lang="'+htm(currentLang)+'" data-from="browse" class="log-row" style="cursor:pointer;">' +
-        '<td style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="'+new Date(log.created_at).toLocaleString()+'">'+new Date(log.created_at).toLocaleString()+'</td>' +
-        '<td style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="'+htm(log.mod_id)+'">'+htm(log.mod_id)+'</td>' +
-        '<td style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="'+htm(log.mod_version)+'">'+htm(log.mod_version)+'</td>' +
-        '<td style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="'+(log.game_version || '-')+'">'+(log.game_version ? htm(log.game_version) : '-')+'</td>' +
-        '<td style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="'+htm(log.error_message)+'">'+htm(log.error_message)+'</td>' +
-        '<td style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="'+htm(log.stack_trace||'')+'">'+(log.stack_trace ? htm(log.stack_trace.substring(0,80)) : '-')+'</td>' +
-        '<td style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="'+htm(log.game_state||'')+'">'+(log.game_state ? htm(log.game_state.substring(0,60)) : '-')+'</td>' +
-        '<td style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="'+htm(log.player_os||'-')+'">'+htm(log.player_os||'-')+'</td>' +
-        '<td style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="'+htm(log.os_version||'-')+'">'+htm(log.os_version||'-')+'</td>' +
-        '<td style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+log.count+'</td>' +
-        '<td style="font-family:monospace;font-size:0.625rem;color:#64748b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="'+htm(log.hash)+'">'+htm(log.hash.substring(0,8))+'</td></tr>';
+      var stackShort = log.stack_trace ? log.stack_trace.substring(0, 80) : "-";
+      var stateShort = log.game_state ? log.game_state.substring(0, 60) : "-";
+      tableData.push({
+        id: log.hash,
+        time: new Date(log.created_at).toLocaleString(),
+        mod_id: log.mod_id, mod_ver: log.mod_version, game_ver: log.game_version || "-",
+        error: log.error_message, stack: stackShort, state: stateShort,
+        os: log.player_os || "-", os_ver: log.os_version || "-",
+        count: log.count, hash: log.hash.substring(0, 8),
+        _lang: currentLang
+      });
     }
-    h += '</tbody></table><p style="color:#64748b;font-size:0.75rem;margin-top:0.5rem;">' + s("admin.browse.total").replace("{count}", data.logs.length) + '</p>';
-    container.innerHTML = h;
-    makeResizable("browse-table");
+    container.innerHTML = "";
+    var table = new Tabulator("#browse-container", {
+      data: tableData,
+      layout: "fitDataFill",
+      resizableColumns: true,
+      selectable: false,
+      height: "auto",
+      rowClick: function(e, row) {
+        var d = row.getData();
+        viewLog(d.id, "browse", d._lang);
+      },
+      columns: [
+        {title:s("admin.browse.col_time"), field:"time", width:140, minWidth:80, headerSort:true},
+        {title:s("admin.browse.col_mod"), field:"mod_id", width:90, minWidth:50},
+        {title:s("admin.browse.col_version"), field:"mod_ver", width:80, minWidth:50},
+        {title:s("admin.browse.col_game_version"), field:"game_ver", width:80, minWidth:50},
+        {title:s("admin.browse.col_error"), field:"error", widthGrow:3, minWidth:80, tooltip:true, formatter:"textarea"},
+        {title:s("admin.browse.col_stack"), field:"stack", widthGrow:3, minWidth:80, tooltip:true},
+        {title:s("admin.browse.col_state"), field:"state", widthGrow:2, minWidth:60, tooltip:true},
+        {title:s("admin.browse.col_os"), field:"os", width:80, minWidth:50},
+        {title:s("admin.browse.col_os_ver"), field:"os_ver", width:80, minWidth:50},
+        {title:s("admin.browse.col_count"), field:"count", width:60, minWidth:40, hozAlign:"center"},
+        {title:s("admin.browse.col_hash"), field:"hash", width:70, minWidth:50}
+      ]
+    });
+    var p = document.createElement("p");
+    p.style.cssText = "color:#64748b;font-size:0.75rem;margin-top:0.5rem;";
+    p.textContent = s("admin.browse.total").replace("{count}", data.logs.length);
+    container.appendChild(p);
   } catch(e) { container.innerHTML = '<div class="result error">' + s("error.network").replace("{msg}", e.message) + '</div>'; }
 }
 document.addEventListener("DOMContentLoaded", function() {
