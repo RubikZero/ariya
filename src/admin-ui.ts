@@ -442,19 +442,12 @@ async function loadBrowseData() {
 
   var table = new Tabulator("#browse-container", {
     ajaxURL: "/admin/browse",
-    ajaxParams: { token: token, _ajax: "1" },
+    ajaxParams: { token, _ajax: "1" },
     ajaxConfig: "GET",
+    ajaxSorting: true,
     pagination: "remote",
     paginationSize: savedSize,
     paginationSizeSelector: [10, 20, 50],
-    paginationCounter: "rows",
-    ajaxSorting: true,
-    ajaxRequestFunc: function(url, config, params) {
-      var query = Object.keys(params).map(function(k){return encodeURIComponent(k)+"="+encodeURIComponent(params[k]);}).join("&");
-      return fetch(url + "?" + query, config).then(function(r){return r.json();}).then(function(d) {
-        return { data: d.data || [], total: d.total || 0, last_page: d.last_page || 1 };
-      });
-    },
     layout: "fitDataFill",
     resizableColumns: true,
     height: "auto",

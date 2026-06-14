@@ -58,7 +58,7 @@ export default {
 			return handleRegisterAdmin(env, body);
 		}
 
-		if (url.pathname === "/favicon.ico") {
+		if (url.pathname === "/favicon.ico" || url.pathname.startsWith("/.well-known/")) {
 			return new Response(null, { status: 204 });
 		}
 
