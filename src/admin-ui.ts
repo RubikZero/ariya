@@ -240,6 +240,7 @@ ${DETAIL_STYLE}
 			<span class="label">${htm(t("detail.mod", lang))}</span><span class="value"><code>${htm(log.mod_id)}</code></span>
 			<span class="label">${htm(t("detail.version", lang))}</span><span class="value">${htm(log.mod_version)}</span>
 			${log.game_version ? `<span class="label">${htm(t("detail.game_version", lang))}</span><span class="value">${htm(log.game_version)}</span>` : ""}
+			<span class="label">${htm(t("detail.error", lang))}</span><span class="value" style="word-break:break-all;">${htm(log.error_message)}</span>
 			<span class="label">${htm(t("detail.error_count", lang))}</span><span class="value">${log.count}</span>
 			<span class="label">${htm(t("detail.os", lang))}</span><span class="value">${htm(log.player_os)}</span>
 			${log.os_version ? `<span class="label">${htm(t("detail.os_version", lang))}</span><span class="value">${htm(log.os_version)}</span>` : ""}

@@ -94,6 +94,7 @@
   "detail.mod": "Mod",
   "detail.version": "版本",
   "detail.game_version": "游戏版本",
+  "detail.error": "异常消息",
   "detail.error_count": "错误次数",
   "detail.os": "操作系统",
   "detail.os_version": "系统版本",

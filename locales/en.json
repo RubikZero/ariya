@@ -94,6 +94,7 @@
   "detail.mod": "Mod",
   "detail.version": "Version",
   "detail.game_version": "Game Version",
+  "detail.error": "Error Message",
   "detail.error_count": "Error Count",
   "detail.os": "OS",
   "detail.os_version": "OS Version",
