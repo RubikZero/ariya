@@ -24,7 +24,7 @@ export default {
 		if (url.pathname === "/admin") {
 			const authed = !!user;
 			if (authed && role !== "admin") {
-				return Response.redirect("/admin/browse?token=" + encodeURIComponent(token) + "&lang=" + encodeURIComponent(lang), 302);
+				return Response.redirect(url.origin + "/admin/browse?token=" + encodeURIComponent(token) + "&lang=" + encodeURIComponent(lang), 302);
 			}
 			return renderAdminPage(env, authed, authed ? token : "", request, lang, role);
 		}
@@ -139,7 +139,7 @@ export default {
 
 		// Redirect /admin/login to /admin for the login page
 		if (url.pathname === "/admin/login" && request.method === "GET") {
-			return Response.redirect("/admin", 302);
+			return Response.redirect(url.origin + "/admin", 302);
 		}
 
 		return handleLogSubmission(request, env);
