@@ -7,6 +7,7 @@ export interface Env {
 }
 
 import { renderAdminPage, renderBrowsePage, renderRegisterPage, renderUsersPage, renderProfilePage, handleAdminLogs, handleBrowseLogs, handleLogDetail, handleLogin } from "./admin.js";
+import { createSessionToken } from "./auth.js";
 import { handleLogSubmission } from "./logs.js";
 import { getAuthUser, requireAdmin, requireAuth } from "./auth.js";
 import { handleRegister, handleMe, handleUpdateNickname, handleUpdatePassword, handleListUsers, handleUpdateRole, handleRemoveUser, handleTransferOwnership, handleCreateInviteCode } from "./users.js";
@@ -14,12 +15,16 @@ import { handleRegister, handleMe, handleUpdateNickname, handleUpdatePassword, h
 export default {
 	async fetch(request, env, ctx): Promise<Response> {
 		const url = new URL(request.url);
-		const token = url.searchParams.get("token") || "";
+		let token = url.searchParams.get("token") || "";
 		const lang = url.searchParams.get("lang") || "zh-CN";
 		const user = await getAuthUser(request, env, token);
 
 		// --- Admin routes ---
 		const role = user?.role || "member";
+		// For Access-authenticated users, create a session token so the page can use it for API calls
+		if (user && user.method === "zero-trust" && !token) {
+			token = await createSessionToken(user.username, env.HMAC_SECRET_KEY);
+		}
 
 		if (url.pathname === "/admin") {
 			const authed = !!user;
