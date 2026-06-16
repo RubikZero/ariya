@@ -8,7 +8,8 @@ import { describe, it, expect, beforeAll } from "vitest";
 import worker from "../src/index";
 
 const SCHEMA = `CREATE TABLE IF NOT EXISTS mod_errors (hash TEXT PRIMARY KEY, mod_id TEXT NOT NULL, mod_version TEXT NOT NULL, game_version TEXT, error_message TEXT NOT NULL, stack_trace TEXT NOT NULL, game_state TEXT NOT NULL, player_os TEXT NOT NULL, os_version TEXT NOT NULL, count INTEGER NOT NULL DEFAULT 1, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`;
-const ADMIN_SCHEMA = `CREATE TABLE IF NOT EXISTS admins (username TEXT PRIMARY KEY, password_hash TEXT NOT NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`;
+const USER_SCHEMA = `CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT UNIQUE NOT NULL, nickname TEXT NOT NULL DEFAULT '', password_hash TEXT, role TEXT NOT NULL DEFAULT 'member' CHECK(role IN ('admin','member')), auth_method TEXT NOT NULL DEFAULT 'password' CHECK(auth_method IN ('password','zero-trust')), email TEXT, last_active_at DATETIME, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`;
+const INVITE_SCHEMA = `CREATE TABLE IF NOT EXISTS invite_codes (code TEXT PRIMARY KEY, created_by TEXT NOT NULL, used_by TEXT, expires_at DATETIME NOT NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`;
 
 const IncomingRequest = Request<unknown, IncomingRequestCfProperties>;
 
@@ -44,7 +45,8 @@ describe("Ariya log endpoint", () => {
 	beforeAll(async () => {
 		hmacKey = (env as any).HMAC_SECRET_KEY || "test-secret";
 		await (env as any).DB.exec(SCHEMA);
-		await (env as any).DB.exec(ADMIN_SCHEMA);
+		await (env as any).DB.exec(USER_SCHEMA);
+		await (env as any).DB.exec(INVITE_SCHEMA);
 		payload = {
 			mod_id: "test-mod",
 			mod_version: "1.0.0",

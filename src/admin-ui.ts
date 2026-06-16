@@ -260,24 +260,25 @@ ${DETAIL_STYLE}
 </html>`;
 }
 
-function sidebarHtml(lang: Lang, token: string, page: string): string {
-	return `<div class="sidebar" id="sidebar">
-  <button class="toggle-btn" onclick="toggleSidebar()">\u2630</button>
-  <a href="/admin?token=${encodeURIComponent(token)}&lang=${lang}" class="nav-item ${page === "dashboard" ? "active" : ""}">
-    <span class="nav-icon">\u2302</span><span class="nav-label">${htm(t("admin.nav.dashboard", lang))}</span>
-  </a>
-  <a href="/admin/browse?token=${encodeURIComponent(token)}&lang=${lang}" class="nav-item ${page === "browse" ? "active" : ""}">
-    <span class="nav-icon">\u2637</span><span class="nav-label">${htm(t("admin.nav.browse", lang))}</span>
-  </a>
-</div>`;
+function sidebarHtml(lang: Lang, token: string, page: string, role: string): string {
+	var navs = "";
+	// All authenticated users: log browser + profile
+	navs += '<a href="/admin/browse?token=' + encodeURIComponent(token) + '&lang=' + lang + '" class="nav-item ' + (page === "browse" ? "active" : "") + '"><span class="nav-icon">\u2637</span><span class="nav-label">' + htm(t("admin.nav.browse", lang)) + '</span></a>';
+	navs += '<a href="/admin/profile?token=' + encodeURIComponent(token) + '&lang=' + lang + '" class="nav-item ' + (page === "profile" ? "active" : "") + '"><span class="nav-icon">\u2699</span><span class="nav-label">' + htm(t("admin.nav.profile", lang)) + '</span></a>';
+	// Admin only: dashboard + user management
+	if (role === "admin") {
+		navs = '<a href="/admin?token=' + encodeURIComponent(token) + '&lang=' + lang + '" class="nav-item ' + (page === "dashboard" ? "active" : "") + '"><span class="nav-icon">\u2302</span><span class="nav-label">' + htm(t("admin.nav.dashboard", lang)) + '</span></a>' + navs;
+		navs += '<a href="/admin/users?token=' + encodeURIComponent(token) + '&lang=' + lang + '" class="nav-item ' + (page === "users" ? "active" : "") + '"><span class="nav-icon">\u263A</span><span class="nav-label">' + htm(t("admin.nav.users", lang)) + '</span></a>';
+	}
+	return '<div class="sidebar" id="sidebar"><button class="toggle-btn" onclick="toggleSidebar()">\u2630</button>' + navs + '</div>';
 }
 
-function renderHtml(content: string, token: string, lang: Lang, authed: boolean = false, page: string = ""): Response {
+function renderHtml(content: string, token: string, lang: Lang, authed: boolean = false, page: string = "", role: string = "member"): Response {
 	const tokenJs = token ? JSON.stringify(token) : "null";
 	const ls = langStrings(lang);
 	const langJs = JSON.stringify(ls);
 	const mainContent = authed
-		? `<div class="layout">${sidebarHtml(lang, token, page)}<main class="content">${content}</main></div>`
+		? `<div class="layout">${sidebarHtml(lang, token, page, role)}<main class="content">${content}</main></div>`
 		: `<main style="max-width:480px;margin:4rem auto;padding:0 1rem;">${content}</main>`;
 	const html = `<!DOCTYPE html>
 <html lang="${lang}">
@@ -304,6 +305,13 @@ const TOKEN = ${tokenJs};
 const LANG = ${langJs};
 function s(key) { return LANG[key] || key; }
 function toggleSidebar() { document.getElementById("sidebar").classList.toggle("collapsed"); }
+// Save token to cookie after login, so server can read it on subsequent visits
+(function() {
+  var t = sessionStorage.getItem("ariya_token");
+  if (t && !document.cookie.includes("ariya_token=")) {
+    document.cookie = "ariya_token=" + encodeURIComponent(t) + "; path=/; max-age=86400; SameSite=Lax";
+  }
+})();
 document.addEventListener("DOMContentLoaded", () => {
   const urlInput = document.getElementById("test-url");
   if (urlInput && !urlInput.value) urlInput.value = window.location.origin;
@@ -319,8 +327,11 @@ async function login() {
   try {
     const resp = await fetch("/admin/login", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({username,password}) });
     const data = await resp.json();
-    if (resp.ok) { sessionStorage.setItem("ariya_token", data.token); location.href = "/admin?token=" + encodeURIComponent(data.token); }
-    else { result.className = "result error"; result.textContent = data.error || s("admin.login.fail"); }
+    if (resp.ok) {
+      sessionStorage.setItem("ariya_token", data.token);
+      var target = data.role === "admin" ? "/admin" : "/admin/browse";
+      location.href = target + "?token=" + encodeURIComponent(data.token);
+    } else { result.className = "result error"; result.textContent = data.error || s("admin.login.fail"); }
   } catch(e) { result.className = "result error"; result.textContent = s("error.network").replace("{msg}", e.message); }
 }
 document.addEventListener("DOMContentLoaded", () => {
@@ -504,8 +515,122 @@ async function loadBrowseData() {
     }
   });
 }
+// --- User Management ---
+function loadUsers() {
+  var c = document.getElementById("users-container");
+  if (!c) return;
+  c.innerHTML = '<div class="empty-state"><p>' + s("users.loading") + '</p></div>';
+  var token = TOKEN || sessionStorage.getItem("ariya_token") || "";
+  fetch("/api/users?token=" + encodeURIComponent(token)).then(function(r){ return r.json(); }).then(function(data) {
+    if (!data.users || !data.users.length) { c.innerHTML = '<div class="empty-state"><p>' + s("users.loading") + '</p></div>'; return; }
+    var h = '<table><thead><tr><th>' + s("users.col_username") + '</th><th>' + s("users.col_nickname") + '</th><th>' + s("users.col_role") + '</th><th>' + s("users.col_last_active") + '</th><th>' + s("users.col_actions") + '</th></tr></thead><tbody>';
+    for (var i = 0; i < data.users.length; i++) {
+      var u = data.users[i];
+      h += '<tr><td>' + htm(u.username) + '</td><td>' + htm(u.nickname || "-") + '</td><td>' + (u.role === "admin" ? s("users.role_admin") : s("users.role_member")) + '</td><td style="font-size:0.75rem;color:#94a3b8;">' + (u.last_active_at || "-") + '</td><td>';
+      if (u.role !== "admin") {
+        h += '<button class="btn-secondary" data-username="' + htm(u.username) + '" data-role="admin">' + s("users.role_admin") + '</button> ';
+        h += '<button class="btn-danger" data-username="' + htm(u.username) + '" data-action="remove">' + s("users.btn_remove") + '</button>';
+      } else {
+        h += '<button class="btn-secondary" data-username="' + htm(u.username) + '" data-role="member">' + s("users.role_member") + '</button>';
+      }
+      h += '</td></tr>';
+    }
+    h += '</tbody></table>';
+    c.innerHTML = h;
+    document.getElementById("invite-card").style.display = "block";
+    document.getElementById("transfer-card").style.display = "block";
+    var sel = document.getElementById("transfer-target");
+    if (sel) {
+      sel.innerHTML = "";
+      for (var j = 0; j < data.users.length; j++) {
+        if (data.users[j].role !== "admin") {
+          var opt = document.createElement("option");
+          opt.value = data.users[j].username; opt.textContent = data.users[j].nickname || data.users[j].username;
+          sel.appendChild(opt);
+        }
+      }
+      if (sel.options.length === 0) { sel.innerHTML = '<option>' + s("users.no_users") + '</option>'; }
+    }
+  }).catch(function(e){ c.innerHTML = '<div class="result error">' + s("error.network").replace("{msg}", e.message) + '</div>'; });
+}
+document.addEventListener("click", function(ev) {
+  var btn = ev.target.closest("[data-role]");
+  if (btn) {
+    var username = btn.getAttribute("data-username");
+    var role = btn.getAttribute("data-role");
+    var token = TOKEN || sessionStorage.getItem("ariya_token") || "";
+    fetch("/api/users/" + encodeURIComponent(username) + "/role?token=" + encodeURIComponent(token), { method:"PUT", headers:{"Content-Type":"application/json"}, body:JSON.stringify({role:role}) })
+      .then(function(r){ return r.json(); }).then(function(d) { if (d.success) loadUsers(); });
+  }
+  var rm = ev.target.closest("[data-action=remove]");
+  if (rm) {
+    var uname = rm.getAttribute("data-username");
+    if (!confirm(s("users.remove_confirm").replace("{username}", uname))) return;
+    var token2 = TOKEN || sessionStorage.getItem("ariya_token") || "";
+    fetch("/api/users/" + encodeURIComponent(uname) + "?token=" + encodeURIComponent(token2), { method:"DELETE" })
+      .then(function(r){ return r.json(); }).then(function(d) { if (d.success) loadUsers(); });
+  }
+});
+function createInvite() {
+  var hours = parseInt(document.getElementById("invite-expires").value) || 48;
+  var token = TOKEN || sessionStorage.getItem("ariya_token") || "";
+  fetch("/api/invite-codes?token=" + encodeURIComponent(token), { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({expires_in_hours:hours}) })
+    .then(function(r){ return r.json(); }).then(function(data) {
+      var el = document.getElementById("invite-result");
+      if (data.code) {
+        el.className = "result success";
+        el.innerHTML = s("users.invite_result").replace("{expires}", data.expires_at) + '<br><code style="background:#0f172a;padding:0.25rem 0.5rem;border-radius:0.25rem;font-size:1rem;user-select:all;">' + data.code + '</code>';
+      } else { el.className = "result error"; el.textContent = data.error || "Error"; }
+    });
+}
+function transferOwnership() {
+  var target = document.getElementById("transfer-target");
+  if (!target || !target.value) return;
+  var token = TOKEN || sessionStorage.getItem("ariya_token") || "";
+  fetch("/api/users/transfer?token=" + encodeURIComponent(token), { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({target_username:target.value}) })
+    .then(function(r){ return r.json(); }).then(function(data) {
+      var el = document.getElementById("transfer-result");
+      if (data.success) { el.className = "result success"; el.textContent = s("users.transfer_confirm") + " OK"; location.href = "/admin?token=" + encodeURIComponent(token); }
+      else { el.className = "result error"; el.textContent = data.error || "Error"; }
+    });
+}
+// --- Profile ---
+function loadProfile() {
+  var token = TOKEN || sessionStorage.getItem("ariya_token") || "";
+  fetch("/api/me?token=" + encodeURIComponent(token)).then(function(r){ return r.json(); }).then(function(data) {
+    if (data.user) {
+      document.getElementById("profile-username").value = data.user.username || "";
+      document.getElementById("profile-nickname").value = data.user.nickname || "";
+    }
+  });
+}
+function saveNickname() {
+  var nickname = document.getElementById("profile-nickname").value.trim();
+  if (!nickname) return;
+  var token = TOKEN || sessionStorage.getItem("ariya_token") || "";
+  fetch("/api/me/nickname?token=" + encodeURIComponent(token), { method:"PUT", headers:{"Content-Type":"application/json"}, body:JSON.stringify({nickname:nickname}) })
+    .then(function(r){ return r.json(); }).then(function(data) {
+      var el = document.getElementById("nickname-result");
+      if (data.success) { el.className = "result success"; el.textContent = s("profile.nickname_saved"); }
+      else { el.className = "result error"; el.textContent = data.error || "Error"; }
+    });
+}
+function changePassword() {
+  var oldPw = document.getElementById("profile-old-pw").value;
+  var newPw = document.getElementById("profile-new-pw").value;
+  if (!oldPw || !newPw) return;
+  var token = TOKEN || sessionStorage.getItem("ariya_token") || "";
+  fetch("/api/me/password?token=" + encodeURIComponent(token), { method:"PUT", headers:{"Content-Type":"application/json"}, body:JSON.stringify({old_password:oldPw, new_password:newPw}) })
+    .then(function(r){ return r.json(); }).then(function(data) {
+      var el = document.getElementById("password-result");
+      if (data.success) { el.className = "result success"; el.textContent = s("profile.password_saved"); }
+      else { el.className = "result error"; el.textContent = data.error || "Error"; }
+    });
+}
 document.addEventListener("DOMContentLoaded", function() {
   if (document.getElementById("browse-container")) loadBrowseData();
+  if (document.getElementById("users-container")) loadUsers();
+  if (document.getElementById("profile-username")) loadProfile();
 });
 </script>
 </body>
@@ -517,20 +642,132 @@ function validLang(lang: string): Lang {
 	return LANGUAGES.some(l => l.code === lang) ? lang as Lang : "zh-CN" as Lang;
 }
 
-export function renderAdminPage(env: Env, authed: boolean, token: string, request: Request, lang: string = "zh-CN"): Response {
+export function renderAdminPage(env: Env, authed: boolean, token: string, request: Request, lang: string = "zh-CN", role: string = "member"): Response {
 	const cfEmail = request.headers.get("Cf-Access-Authenticated-User-Email");
 	const isAuthed = authed || !!cfEmail;
 	const hasAnyAuth = !!env.ADMIN_KEY || !!cfEmail;
 	const l = validLang(lang);
 	const content = !hasAnyAuth && !token ? DISABLED_PAGE(l) : (isAuthed ? DASHBOARD_PAGE(l) : LOGIN_PAGE(l));
-	return renderHtml(content, token, l, isAuthed, "dashboard");
+	return renderHtml(content, token, l, isAuthed, "dashboard", role);
 }
 
-export function renderBrowsePage(token: string, lang: string = "zh-CN"): Response {
+export function renderBrowsePage(token: string, lang: string = "zh-CN", role: string = "member"): Response {
 	const l = validLang(lang);
 	const content = `<div class="card"><h2>${htm(t("admin.browse.title", l))}</h2>
 <div id="browse-container"><div class="empty-state"><p>${htm(t("admin.browse.loading", l))}</p></div></div></div>`;
-	return renderHtml(content, token, l, true, "browse");
+	return renderHtml(content, token, l, true, "browse", role);
+}
+
+export function renderUsersPage(token: string, lang: string = "zh-CN", role: string = "admin"): Response {
+	const l = validLang(lang);
+	const content = `<div class="card">
+  <h2>${htm(t("users.title", l))}</h2>
+  <div id="users-container"><div class="empty-state"><p>${htm(t("users.loading", l))}</p></div></div>
+</div>
+<div class="card" id="invite-card" style="display:none;">
+  <h2>${htm(t("users.invite_title", l))}</h2>
+  <p style="color:#94a3b8;font-size:0.875rem;margin-bottom:1rem;">${htm(t("users.invite_desc", l))}</p>
+  <label>${htm(t("users.invite_expires", l))}</label>
+  <select id="invite-expires" style="background:#0f172a;color:#e2e8f0;border:1px solid #475569;border-radius:0.375rem;padding:0.5rem;font-size:0.875rem;margin-bottom:1rem;width:100%;">
+    <option value="1">${htm(t("users.invite_expires_1h", l))}</option>
+    <option value="24" selected>${htm(t("users.invite_expires_24h", l))}</option>
+    <option value="48">${htm(t("users.invite_expires_48h", l))}</option>
+    <option value="72">${htm(t("users.invite_expires_72h", l))}</option>
+    <option value="168">${htm(t("users.invite_expires_168h", l))}</option>
+  </select>
+  <button class="btn-primary" onclick="createInvite()">${htm(t("users.btn_invite", l))}</button>
+  <div class="result" id="invite-result"></div>
+</div>
+<div class="card" id="transfer-card" style="display:none;">
+  <h2>${htm(t("users.transfer_title", l))}</h2>
+  <p style="color:#94a3b8;font-size:0.875rem;margin-bottom:1rem;">${htm(t("users.transfer_desc", l))}</p>
+  <label>${htm(t("users.transfer_select", l))}</label>
+  <select id="transfer-target" style="background:#0f172a;color:#e2e8f0;border:1px solid #475569;border-radius:0.375rem;padding:0.5rem;font-size:0.875rem;margin-bottom:1rem;width:100%;"></select>
+  <button class="btn-danger" onclick="transferOwnership()">${htm(t("users.transfer_confirm", l))}</button>
+  <div class="result" id="transfer-result"></div>
+</div>`;
+	return renderHtml(content, token, l, true, "users", role);
+}
+
+export function renderProfilePage(token: string, lang: string = "zh-CN", role: string = "member"): Response {
+	const l = validLang(lang);
+	const content = `<div class="card">
+  <h2>${htm(t("profile.title", l))}</h2>
+  <label>${htm(t("profile.username", l))}</label>
+  <input type="text" id="profile-username" readonly style="color:#94a3b8;" />
+  <label>${htm(t("profile.nickname", l))}</label>
+  <input type="text" id="profile-nickname" placeholder="${htm(t("profile.nickname_placeholder", l))}" />
+  <button class="btn-primary" onclick="saveNickname()">${htm(t("profile.nickname_btn", l))}</button>
+  <div class="result" id="nickname-result"></div>
+</div>
+<div class="card">
+  <h2>${htm(t("profile.password_title", l))}</h2>
+  <label>${htm(t("profile.old_password", l))}</label>
+  <input type="password" id="profile-old-pw" placeholder="${htm(t("profile.old_password_placeholder", l))}" autocomplete="current-password" />
+  <label>${htm(t("profile.new_password", l))}</label>
+  <input type="password" id="profile-new-pw" placeholder="${htm(t("profile.new_password_placeholder", l))}" autocomplete="new-password" />
+  <button class="btn-primary" onclick="changePassword()">${htm(t("profile.password_btn", l))}</button>
+  <div class="result" id="password-result"></div>
+</div>`;
+	return renderHtml(content, token, l, true, "profile", role);
+}
+
+export function renderRegisterPage(lang: string = "zh-CN"): Response {
+	const l = validLang(lang);
+	const html = `<!DOCTYPE html>
+<html lang="${l}">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${htm(t("register.page_title", l))}</title>
+<style>
+* { margin:0;padding:0;box-sizing:border-box; }
+body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; background:#0f172a; color:#e2e8f0; line-height:1.6; display:flex;justify-content:center;align-items:center;min-height:100vh; }
+.card { background:#1e293b; border:1px solid #334155; border-radius:0.5rem; padding:2rem; width:100%;max-width:420px;margin:1rem; }
+.card h1 { font-size:1.25rem; font-weight:700; margin-bottom:0.25rem; color:#f8fafc; }
+.card p { font-size:0.875rem; color:#94a3b8; margin-bottom:1.5rem; }
+label { display:block; font-size:0.875rem; font-weight:500; color:#cbd5e1; margin-bottom:0.375rem; }
+input { width:100%; padding:0.625rem; background:#0f172a; border:1px solid #475569; border-radius:0.375rem; color:#e2e8f0; font-size:0.875rem; margin-bottom:0.75rem; }
+input:focus { outline:none; border-color:#3b82f6; box-shadow:0 0 0 2px rgba(59,130,246,0.3); }
+button { width:100%; padding:0.625rem; font-size:0.875rem; font-weight:500; background:#3b82f6; color:#fff; border:none; border-radius:0.375rem; cursor:pointer; }
+button:hover { background:#2563eb; }
+.result { margin-top:0.75rem; padding:0.75rem; border-radius:0.375rem; font-size:0.8125rem; white-space:pre-wrap; }
+.result.error { background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); color:#fca5a5; }
+.result.info { background:rgba(59,130,246,0.1); border:1px solid rgba(59,130,246,0.3); color:#93c5fd; }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>${htm(t("register.page_title", l))}</h1>
+  <p>${htm(t("register.desc", l))}</p>
+  <label>${htm(t("register.invite_code", l))}</label>
+  <input type="text" id="reg-code" placeholder="${htm(t("register.invite_code_placeholder", l))}" autocomplete="off" />
+  <label>${htm(t("register.username", l))}</label>
+  <input type="text" id="reg-username" placeholder="${htm(t("register.username_placeholder", l))}" autocomplete="username" />
+  <label>${htm(t("register.password", l))}</label>
+  <input type="password" id="reg-password" placeholder="${htm(t("register.password_placeholder", l))}" autocomplete="new-password" />
+  <button onclick="register()">${htm(t("register.btn", l))}</button>
+  <div class="result" id="reg-result"></div>
+</div>
+<script>
+async function register() {
+  var code = document.getElementById("reg-code").value.trim();
+  var username = document.getElementById("reg-username").value.trim();
+  var password = document.getElementById("reg-password").value.trim();
+  var result = document.getElementById("reg-result");
+  if (!code || !username || !password) { result.className = "result error"; result.textContent = "${htm(t("register.required", l))}"; return; }
+  result.className = "result info"; result.textContent = "${htm(t("register.loading", l))}";
+  try {
+    var resp = await fetch("/api/register", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({invite_code:code, username, password}) });
+    var data = await resp.json();
+    if (resp.ok) { sessionStorage.setItem("ariya_token", data.token); location.href = "/admin/browse?token=" + encodeURIComponent(data.token); }
+    else { result.className = "result error"; result.textContent = data.error || "${htm(t("register.fail", l))}"; }
+  } catch(e) { result.className = "result error"; result.textContent = "${htm(t("error.network", l)).replace("{msg}", "")}" + e.message; }
+}
+</script>
+</body>
+</html>`;
+	return new Response(html, { headers: { "Content-Type": "text/html; charset=utf-8" } });
 }
 
 export { renderDetailPage };
