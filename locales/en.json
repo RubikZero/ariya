@@ -21,6 +21,8 @@
   "admin.login.loading": "Signing in...",
   "admin.login.fail": "Login failed",
   "admin.login.required": "Please enter username and password",
+  "admin.login.no_account": "No account yet?",
+  "admin.login.register": "Register here",
 
   "admin.dashboard.key.title": "Generate HMAC Key",
   "admin.dashboard.key.desc": "Ariya uses HMAC-SHA256 to verify requests from the mod. Both the mod and server must use the same key.",

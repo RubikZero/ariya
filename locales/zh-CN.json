@@ -21,6 +21,8 @@
   "admin.login.loading": "登录中...",
   "admin.login.fail": "登录失败",
   "admin.login.required": "请输入用户名和密码",
+  "admin.login.no_account": "还没有账号？",
+  "admin.login.register": "注册新账号",
 
   "admin.dashboard.key.title": "生成 HMAC 密钥",
   "admin.dashboard.key.desc": "Ariya 使用 HMAC-SHA256 验证 Mod 发来的请求。Mod 和服务端必须使用相同的密钥。",

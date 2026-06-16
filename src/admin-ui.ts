@@ -78,6 +78,7 @@ const LOGIN_PAGE = (lang: Lang) => `
   <input type="password" id="login-password" placeholder="${htm(t("admin.login.password", lang))}" autocomplete="current-password" />
   <button class="btn-primary" onclick="login()" style="width:100%;">${htm(t("admin.login.btn", lang))}</button>
   <div class="result" id="login-result"></div>
+  <p style="text-align:center;margin-top:1rem;font-size:0.8125rem;color:#94a3b8;">${htm(t("admin.login.no_account", lang))} <a href="/register" style="color:#3b82f6;text-decoration:none;">${htm(t("admin.login.register", lang))}</a></p>
 </div>`;
 
 const DASHBOARD_PAGE = (lang: Lang) => `
