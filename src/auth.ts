@@ -50,6 +50,96 @@ function getCookie(request: Request, name: string): string | null {
 	return null;
 }
 
+// --- JWT / Zero Trust group support ---
+
+let cachedJwks: any = null;
+let cachedJwksTs = 0;
+const JWKS_TTL = 3600000;
+
+function base64url(s: string): string {
+	return s.replace(/-/g, "+").replace(/_/g, "/") + "=".repeat((4 - s.length % 4) % 4);
+}
+
+async function fetchJwks(teamDomain: string): Promise<any> {
+	if (cachedJwks && Date.now() - cachedJwksTs < JWKS_TTL) return cachedJwks;
+	const resp = await fetch(`https://${teamDomain}/cdn-cgi/access/certs`);
+	if (!resp.ok) throw new Error("Failed to fetch JWKS");
+	const data = await resp.json();
+	cachedJwks = data;
+	cachedJwksTs = Date.now();
+	return data;
+}
+
+function jwtDecodePayload(jwt: string): any {
+	try {
+		const payload = jwt.split(".")[1];
+		return JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(base64url(payload)), c => c.charCodeAt(0))));
+	} catch { return null; }
+}
+
+async function jwtVerify(jwt: string, jwks: any): Promise<boolean> {
+	try {
+		const parts = jwt.split(".");
+		if (parts.length !== 3) return false;
+		const header = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(base64url(parts[0])), c => c.charCodeAt(0))));
+		const kid = header.kid;
+		const jwk = jwks.keys?.find((k: any) => k.kid === kid);
+		if (!jwk) return false;
+
+		const key = await crypto.subtle.importKey("jwk", { kty: "RSA", n: jwk.n, e: jwk.e, alg: "RS256" }, { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" }, false, ["verify"]);
+		const data = new TextEncoder().encode(parts[0] + "." + parts[1]);
+		const sig = Uint8Array.from(atob(base64url(parts[2])), c => c.charCodeAt(0));
+		return crypto.subtle.verify({ name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" }, key, sig, data);
+	} catch { return false; }
+}
+
+function roleFromGroups(groups: string[] | undefined): "admin" | "member" {
+	if (!groups || !groups.length) return "member";
+	for (const g of groups) {
+		if (g.toLowerCase().includes("admin")) return "admin";
+	}
+	return "member";
+}
+
+async function handleAccessJwt(env: Env, jwt: string): Promise<AuthUser | null> {
+	const teamDomain = env.CF_ACCESS_TEAM_DOMAIN;
+	if (!teamDomain) return null;
+
+	try {
+		const payload = jwtDecodePayload(jwt);
+		if (!payload || !payload.email) return null;
+
+		// Verify the JWT signature
+		const jwks = await fetchJwks(teamDomain);
+		const valid = await jwtVerify(jwt, jwks);
+		if (!valid) return null;
+
+		// Check iss matches our team domain
+		if (payload.iss && !payload.iss.includes(teamDomain)) return null;
+
+		const email = payload.email;
+		const groups: string[] = payload.custom?.groups || [];
+
+		// Look up existing user
+		const existing = await env.DB.prepare("SELECT username, role FROM users WHERE email = ?").bind(email).first<{ username: string; role: string }>();
+		if (existing) {
+			await env.DB.prepare("UPDATE users SET last_active_at = datetime('now') WHERE email = ?").bind(email).run();
+			return { username: existing.username, role: existing.role as "admin" | "member", method: "zero-trust" };
+		}
+
+		// Auto-register: derive role from groups, username from email prefix
+		const role = roleFromGroups(groups);
+		const username = email.split("@")[0];
+		await env.DB.prepare("INSERT INTO users (username, nickname, role, auth_method, email, last_active_at) VALUES (?, ?, ?, 'zero-trust', ?, datetime('now'))")
+			.bind(username, username, role, email).run();
+		return { username, role, method: "zero-trust" };
+	} catch {
+		return null;
+	}
+}
+
+// --- Main auth entry point ---
+
 export async function getAuthUser(request: Request, env: Env, token: string): Promise<AuthUser | null> {
 	// 0. Fallback to cookie if no URL token
 	if (!token) {
@@ -57,7 +147,14 @@ export async function getAuthUser(request: Request, env: Env, token: string): Pr
 		if (cookieToken) token = cookieToken;
 	}
 
-	// 1. Cf-Access header
+	// 1. Access JWT (gives email + groups, supports auto-register)
+	const jwt = request.headers.get("CF-Access-JWT-Assertion");
+	if (jwt && env.CF_ACCESS_TEAM_DOMAIN) {
+		const result = await handleAccessJwt(env, jwt);
+		if (result) return result;
+	}
+
+	// 2. Cf-Access email header fallback
 	const cfEmail = request.headers.get("Cf-Access-Authenticated-User-Email");
 	if (cfEmail) {
 		const user = await env.DB.prepare("SELECT username, role, auth_method FROM users WHERE email = ?").bind(cfEmail).first<{ username: string; role: string; auth_method: string }>();
@@ -68,16 +165,14 @@ export async function getAuthUser(request: Request, env: Env, token: string): Pr
 		return null;
 	}
 
-	// 2. ADMIN_KEY env var (deprecated, kept for compatibility)
+	// 3. ADMIN_KEY env var
 	if (env.ADMIN_KEY && token.length === env.ADMIN_KEY.length) {
 		let r = 0;
 		for (let i = 0; i < token.length; i++) r |= token.charCodeAt(i) ^ env.ADMIN_KEY.charCodeAt(i);
-		if (r === 0) {
-			return { username: "admin", role: "admin", method: "password" };
-		}
+		if (r === 0) return { username: "admin", role: "admin", method: "password" };
 	}
 
-	// 3. Session token
+	// 4. Session token
 	const username = token ? await verifySessionToken(token, env.HMAC_SECRET_KEY) : null;
 	if (username) {
 		const user = await env.DB.prepare("SELECT username, role FROM users WHERE username = ?").bind(username).first<{ username: string; role: string }>();

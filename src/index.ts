@@ -3,6 +3,7 @@ export interface Env {
 	HMAC_SECRET_KEY: string;
 	TIMEOUT: number;
 	ADMIN_KEY?: string;
+	CF_ACCESS_TEAM_DOMAIN?: string;
 }
 
 import { renderAdminPage, renderBrowsePage, renderRegisterPage, renderUsersPage, renderProfilePage, handleAdminLogs, handleBrowseLogs, handleLogDetail, handleLogin } from "./admin.js";

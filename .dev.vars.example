@@ -9,3 +9,10 @@ TIMEOUT=600
 # 不设置则管理面板不可用
 # 生产环境请通过 `npx wrangler secret put ADMIN_KEY` 设置
 ADMIN_KEY=your-cloudflare-api-token-or-any-secret
+
+# Cloudflare Zero Trust 团队域名（用于 JWT 验证和组名提取）
+# 格式为 xxx.cloudflareaccess.com，在 Zero Trust Dashboard → Settings → Team domain 中查看
+# 设置后 Worker 会解析 Access JWT 中的 email 和 groups 字段，
+# 根据组名自动注册用户（组名包含 admin 则角色为管理员，否则为成员）
+# 生产环境请通过 `npx wrangler secret put CF_ACCESS_TEAM_DOMAIN` 设置
+CF_ACCESS_TEAM_DOMAIN=your-team.cloudflareaccess.com
