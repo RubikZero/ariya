@@ -45,15 +45,19 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
-      - name: Set CF_ACCESS_TEAM_DOMAIN (if configured)
+      - name: Set secrets (if configured)
         run: |
           if [ -n "$CF_ACCESS_TEAM_DOMAIN" ]; then
             echo "$CF_ACCESS_TEAM_DOMAIN" | npx wrangler secret put CF_ACCESS_TEAM_DOMAIN
+          fi
+          if [ -n "$OWNER_EMAIL" ]; then
+            echo "$OWNER_EMAIL" | npx wrangler secret put OWNER_EMAIL
           fi
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CF_ACCESS_TEAM_DOMAIN: ${{ secrets.CF_ACCESS_TEAM_DOMAIN }}
+          OWNER_EMAIL: ${{ secrets.OWNER_EMAIL }}
 
       - name: Deploy Worker
         run: npx wrangler deploy
