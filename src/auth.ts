@@ -112,17 +112,23 @@ async function handleAccessJwt(env: Env, jwt: string): Promise<AuthUser | null> 
 		// Verify the JWT signature
 		const jwks = await fetchJwks(teamDomain);
 		const valid = await jwtVerify(jwt, jwks);
-		if (!valid) return null;
+		if (!valid) { console.log("Access JWT: signature invalid"); return null; }
 
 		// Check iss matches our team domain
-		if (payload.iss && !payload.iss.includes(teamDomain)) return null;
+		if (payload.iss && !payload.iss.includes(teamDomain)) {
+			console.log("Access JWT: iss mismatch", payload.iss, teamDomain);
+			return null;
+		}
 
 		const email = payload.email;
 		const groups: string[] = payload.custom?.groups || [];
 
+		console.log("Access auth:", JSON.stringify({ email, groups, iss: payload.iss, sub: payload.sub }));
+
 		// Look up existing user
 		const existing = await env.DB.prepare("SELECT username, role FROM users WHERE email = ?").bind(email).first<{ username: string; role: string }>();
 		if (existing) {
+			console.log("Access user exists:", existing.username, existing.role, groups);
 			await env.DB.prepare("UPDATE users SET last_active_at = datetime('now') WHERE email = ?").bind(email).run();
 			return { username: existing.username, role: existing.role as "admin" | "member", method: "zero-trust" };
 		}
@@ -130,6 +136,7 @@ async function handleAccessJwt(env: Env, jwt: string): Promise<AuthUser | null> 
 		// Auto-register: derive role from groups, username from email prefix
 		const role = roleFromGroups(groups);
 		const username = email.split("@")[0];
+		console.log("Access auto-register:", username, email, role, groups);
 		await env.DB.prepare("INSERT INTO users (username, nickname, role, auth_method, email, last_active_at) VALUES (?, ?, ?, 'zero-trust', ?, datetime('now'))")
 			.bind(username, username, role, email).run();
 		return { username, role, method: "zero-trust" };
