@@ -16,3 +16,9 @@ ADMIN_KEY=your-cloudflare-api-token-or-any-secret
 # 根据组名自动注册用户（组名包含 admin 则角色为管理员，否则为成员）
 # 生产环境请通过 `npx wrangler secret put CF_ACCESS_TEAM_DOMAIN` 设置
 CF_ACCESS_TEAM_DOMAIN=your-team.cloudflareaccess.com
+
+# 管理员邮箱（可选）
+# 通过 Cloudflare Access 登录时，若邮箱匹配此值，自动获得 admin 权限
+# 不设置时所有首次 Access 用户默认 role=member
+# 生产环境请通过 `npx wrangler secret put OWNER_EMAIL` 设置
+# OWNER_EMAIL=admin@example.com
