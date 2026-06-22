@@ -6,9 +6,9 @@ export default defineConfig({
 	server: {
 		port: 5173,
 		proxy: {
-			"/api": "http://localhost:8787",
-			"/admin": "http://localhost:8787",
-			"/register": "http://localhost:8787",
+			"/api": { target: "http://localhost:8787", changeOrigin: true },
+			"/admin": { target: "http://localhost:8787", changeOrigin: true },
+			"/register": { target: "http://localhost:8787", changeOrigin: true },
 		},
 	},
 });
