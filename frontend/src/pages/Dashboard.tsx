@@ -34,14 +34,12 @@ export default function Dashboard() {
 		setTestBusy(true);
 		setTestResult(null);
 		try {
-			const now = new Date().toISOString();
 			const encoder = new TextEncoder();
 			const keyData = encoder.encode(testKey);
 			const cryptoKey = await crypto.subtle.importKey("raw", keyData, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
-
 			const p = {
 				mod_id: "sts2-mod-example", mod_version: "1.0.0", game_version: "2.0",
-				error_message: "Test error - " + now,
+				error_message: "Test error - " + new Date().toISOString(),
 				stack_trace: "at GameLogic.update (GameLogic.cs:123)\nat GameManager.run (GameManager.cs:456)",
 				game_state: '{"game.scene":"CombatRoom","game.in_run":"true"}',
 				player_os: navigator.platform, os_version: navigator.userAgent,
@@ -50,12 +48,10 @@ export default function Dashboard() {
 			const body = JSON.stringify(p);
 			const sig = await crypto.subtle.sign("HMAC", cryptoKey, encoder.encode(body));
 			const signature = btoa(String.fromCharCode(...new Uint8Array(sig)));
-
 			const resp = await fetch(testUrl || window.location.origin, {
 				method: "POST", headers: { "Content-Type": "application/json", "X-Mod-Signature": signature }, body,
 			});
-			const text = await resp.text();
-			setTestResult({ ok: resp.ok, text });
+			setTestResult({ ok: resp.ok, text: await resp.text() });
 		} catch (e: any) {
 			setTestResult({ ok: false, text: e.message });
 		} finally {
@@ -67,8 +63,7 @@ export default function Dashboard() {
 		setLogsBusy(true);
 		try {
 			const resp = await fetch(apiUrl("/admin/logs"));
-			const data = await resp.json();
-			setRecentLogs(data.logs || []);
+			setRecentLogs((await resp.json()).logs || []);
 		} catch {} finally {
 			setLogsBusy(false);
 		}
@@ -76,68 +71,55 @@ export default function Dashboard() {
 
 	return (
 		<>
-			<div style={cardStyle}>
-				<h2 style={h2Style}>{t("dashboard.key_title")}</h2>
-				<p style={descStyle}>{t("dashboard.key_desc")}</p>
+			<div className="card">
+				<h2>{t("dashboard.key_title")}</h2>
+				<p className="desc">{t("dashboard.key_desc")}</p>
 				<div style={{ display: "flex", gap: "0.5rem", alignItems: "center", marginBottom: "0.75rem" }}>
-					<input readOnly value={generatedKey} placeholder={t("dashboard.key_placeholder")} style={{ ...inputStyle, flex: 1, marginBottom: 0 }} />
-					<button onClick={generateKey} style={btnPrm}>{t("dashboard.key_generate")}</button>
-					<button onClick={copyKey} style={btnSec}>{t("dashboard.key_copy")}</button>
-					{copied && <span style={{ fontSize: "0.75rem", color: "#22c55e" }}>{t("dashboard.key_copied")}</span>}
+					<input readOnly value={generatedKey} placeholder={t("dashboard.key_placeholder")} style={{ flex: 1, marginBottom: 0 }} />
+					<button onClick={generateKey} className="btn btn-primary">{t("dashboard.key_generate")}</button>
+					<button onClick={copyKey} className="btn btn-secondary">{t("dashboard.key_copy")}</button>
+					{copied && <span style={{ fontSize: "0.75rem", color: "var(--accent-success)" }}>{t("dashboard.key_copied")}</span>}
 				</div>
 			</div>
 
-			<div style={cardStyle}>
-				<h2 style={h2Style}>{t("dashboard.test_title")}</h2>
-				<p style={descStyle}>{t("dashboard.test_desc")}</p>
-				<label style={labelStyle}>{t("dashboard.test_key_label")}</label>
-				<input value={testKey} onChange={(e) => setTestKey(e.target.value)} style={inputStyle} placeholder={t("dashboard.test_key_label")} />
-				<label style={labelStyle}>{t("dashboard.test_url_label")}</label>
-				<input value={testUrl} onChange={(e) => setTestUrl(e.target.value)} style={inputStyle} placeholder="http://localhost:8787" />
-				<button onClick={testSubmit} disabled={testBusy} style={btnSuc}>{testBusy ? t("dashboard.test_sending") : t("dashboard.test_btn")}</button>
-				{testResult && <div style={{ marginTop: "0.75rem", padding: "0.75rem", borderRadius: "0.375rem", fontSize: "0.8125rem", fontFamily: "monospace", whiteSpace: "pre-wrap", background: testResult.ok ? "rgba(34,197,94,0.1)" : "rgba(239,68,68,0.1)", color: testResult.ok ? "#86efac" : "#fca5a5" }}>{testResult.text}</div>}
+			<div className="card">
+				<h2>{t("dashboard.test_title")}</h2>
+				<p className="desc">{t("dashboard.test_desc")}</p>
+				<label style={{ fontSize: "0.875rem", color: "var(--text-secondary)", marginBottom: "0.375rem", display: "block" }}>{t("dashboard.test_key_label")}</label>
+				<input value={testKey} onChange={(e) => setTestKey(e.target.value)} placeholder={t("dashboard.test_key_label")} />
+				<label style={{ fontSize: "0.875rem", color: "var(--text-secondary)", marginBottom: "0.375rem", display: "block" }}>{t("dashboard.test_url_label")}</label>
+				<input value={testUrl} onChange={(e) => setTestUrl(e.target.value)} placeholder="http://localhost:8787" />
+				<button onClick={testSubmit} disabled={testBusy} className="btn btn-success">{testBusy ? t("dashboard.test_sending") : t("dashboard.test_btn")}</button>
+				{testResult && (
+					<div style={{ marginTop: "0.75rem", padding: "0.75rem", borderRadius: "0.375rem", fontSize: "0.8125rem", fontFamily: "var(--font-mono)", whiteSpace: "pre-wrap", background: testResult.ok ? "rgba(34,197,94,0.1)" : "rgba(239,68,68,0.1)", color: testResult.ok ? "var(--accent-success)" : "var(--accent-danger)" }}>
+						{testResult.text}
+					</div>
+				)}
 			</div>
 
-			<div style={cardStyle}>
-				<h2 style={h2Style}>{t("dashboard.logs_title")}</h2>
-				<button onClick={loadLogs} disabled={logsBusy} style={btnPrm}>{logsBusy ? t("dashboard.logs_loading") : t("dashboard.logs_btn")}</button>
+			<div className="card">
+				<h2>{t("dashboard.logs_title")}</h2>
+				<button onClick={loadLogs} disabled={logsBusy} className="btn btn-primary">{logsBusy ? t("dashboard.logs_loading") : t("dashboard.logs_btn")}</button>
 				{recentLogs.length > 0 && (
-					<table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.8125rem", marginTop: "0.75rem" }}>
-						<thead><tr>{[t("browse.col_time"), t("browse.col_mod"), t("browse.col_version"), t("browse.col_error"), t("browse.col_count")].map((h) => <th key={h} style={thStyle}>{h}</th>)}</tr></thead>
-						<tbody>
-							{recentLogs.map((log: any) => (
-								<tr key={log.hash} onClick={() => nav("/admin/logs?hash=" + encodeURIComponent(log.hash))} style={{ cursor: "pointer" }}>
-									<td style={tdStyle}>{new Date(log.created_at).toLocaleString()}</td>
-									<td style={tdStyle}><span style={tagStyle}>{log.mod_id}</span></td>
-									<td style={tdStyle}>{log.mod_version}</td>
-									<td style={{ ...tdStyle, maxWidth: 300, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={log.error_message}>{log.error_message}</td>
-									<td style={tdStyle}>{log.count}</td>
-								</tr>
-							))}
-						</tbody>
-					</table>
+					<>
+						<table style={{ marginTop: "0.75rem" }}>
+							<thead><tr>{[t("browse.col_time"), t("browse.col_mod"), t("browse.col_version"), t("browse.col_error"), t("browse.col_count")].map((h) => <th key={h}>{h}</th>)}</tr></thead>
+							<tbody>
+								{recentLogs.map((log: any) => (
+									<tr key={log.hash} onClick={() => nav("/admin/logs?hash=" + encodeURIComponent(log.hash))} style={{ cursor: "pointer" }}>
+										<td>{new Date(log.created_at).toLocaleString()}</td>
+										<td><span style={{ display: "inline-block", padding: "0.125rem 0.375rem", borderRadius: "0.25rem", fontSize: "0.6875rem", background: "var(--bg-hover)", color: "var(--text-secondary)" }}>{log.mod_id}</span></td>
+										<td>{log.mod_version}</td>
+										<td style={{ maxWidth: 300, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={log.error_message}>{log.error_message}</td>
+										<td>{log.count}</td>
+									</tr>
+								))}
+							</tbody>
+						</table>
+						<p style={{ color: "var(--text-muted)", fontSize: "0.75rem", marginTop: "0.5rem" }}>{recentLogs.length} records</p>
+					</>
 				)}
-				{recentLogs.length > 0 && <p style={{ color: "#64748b", fontSize: "0.75rem", marginTop: "0.5rem" }}>{recentLogs.length} records</p>}
 			</div>
 		</>
 	);
 }
-
-const cardStyle: React.CSSProperties = {
-	background: "#1e293b", border: "1px solid #334155", borderRadius: "0.5rem",
-	padding: "1.5rem", marginBottom: "1.5rem",
-};
-const h2Style: React.CSSProperties = { fontSize: "1.125rem", fontWeight: 600, marginBottom: "1rem", color: "#f1f5f9" };
-const descStyle: React.CSSProperties = { color: "#94a3b8", fontSize: "0.8125rem", marginBottom: "1rem" };
-const labelStyle: React.CSSProperties = { display: "block", fontSize: "0.875rem", fontWeight: 500, color: "#cbd5e1", marginBottom: "0.375rem" };
-const inputStyle: React.CSSProperties = {
-	width: "100%", padding: "0.625rem", background: "#0f172a", border: "1px solid #475569",
-	borderRadius: "0.375rem", color: "#e2e8f0", fontSize: "0.875rem", fontFamily: "monospace",
-	marginBottom: "0.75rem", boxSizing: "border-box", outline: "none",
-};
-const btnPrm: React.CSSProperties = { padding: "0.5rem 1rem", fontSize: "0.875rem", fontWeight: 500, background: "#3b82f6", color: "#fff", border: "none", borderRadius: "0.375rem", cursor: "pointer" };
-const btnSec: React.CSSProperties = { padding: "0.5rem 1rem", fontSize: "0.875rem", fontWeight: 500, background: "#475569", color: "#e2e8f0", border: "none", borderRadius: "0.375rem", cursor: "pointer" };
-const btnSuc: React.CSSProperties = { padding: "0.5rem 1rem", fontSize: "0.875rem", fontWeight: 500, background: "#22c55e", color: "#fff", border: "none", borderRadius: "0.375rem", cursor: "pointer" };
-const thStyle: React.CSSProperties = { padding: "0.5rem 0.75rem", textAlign: "left", borderBottom: "1px solid #334155", fontWeight: 600, color: "#94a3b8", fontSize: "0.6875rem", textTransform: "uppercase", letterSpacing: "0.05em" };
-const tdStyle: React.CSSProperties = { padding: "0.5rem 0.75rem", borderBottom: "1px solid #334155" };
-const tagStyle: React.CSSProperties = { display: "inline-block", padding: "0.125rem 0.375rem", borderRadius: "0.25rem", fontSize: "0.6875rem", background: "#334155", color: "#94a3b8" };
