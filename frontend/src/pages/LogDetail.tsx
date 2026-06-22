@@ -10,10 +10,10 @@ export default function LogDetail() {
 
 	useEffect(() => {
 		if (!hash) return;
-		fetch(apiUrl("/admin/logs?hash=" + encodeURIComponent(hash)))
+		fetch(apiUrl("/api/logs/detail?hash=" + encodeURIComponent(hash)))
 			.then((r) => r.json())
 			.then((data) => {
-				if (data.logs?.length) setLog(data.logs[0]);
+				if (data.log) setLog(data.log);
 				else setLog(null);
 				setLoading(false);
 			})

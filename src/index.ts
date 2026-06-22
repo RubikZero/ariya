@@ -133,6 +133,22 @@ export default {
 			return handleTransferOwnership(env, user!, body);
 		}
 
+		if (url.pathname === "/api/logs/detail") {
+			const blocked = requireAuth(user);
+			if (blocked) return blocked;
+			const hash = url.searchParams.get("hash") || "";
+			if (!hash) return new Response(JSON.stringify({ error: "Missing hash" }), { status: 400, headers: { "Content-Type": "application/json" } });
+			try {
+				const log = await env.DB.prepare(
+					"SELECT hash, mod_id, mod_version, game_version, error_message, stack_trace, game_state, player_os, os_version, count, created_at FROM mod_errors WHERE hash = ?"
+				).bind(hash).first();
+				if (!log) return new Response(JSON.stringify({ error: "Not found" }), { status: 404, headers: { "Content-Type": "application/json" } });
+				return new Response(JSON.stringify({ log }), { headers: { "Content-Type": "application/json" } });
+			} catch (e: any) {
+				return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: { "Content-Type": "application/json" } });
+			}
+		}
+
 		if (url.pathname === "/api/invite-codes" && request.method === "POST") {
 			const blocked = requireAdmin(user); if (blocked) return blocked;
 			const body = await request.json() as any;
