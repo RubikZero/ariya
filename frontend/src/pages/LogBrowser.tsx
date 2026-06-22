@@ -1,28 +1,49 @@
-import { useState, useEffect, useRef, useCallback } from "react";
-import { apiUrl } from "../api";
+import { useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { t } from "../locale";
 
 import { AgGridReact } from "@ag-grid-community/react";
 import { ModuleRegistry } from "@ag-grid-community/core";
-import { ClientSideRowModelModule } from "@ag-grid-community/client-side-row-model";
+import { InfiniteRowModelModule } from "@ag-grid-community/infinite-row-model";
 import "@ag-grid-community/styles/ag-grid.css";
 import "@ag-grid-community/styles/ag-theme-quartz.css";
 
-ModuleRegistry.registerModules([ClientSideRowModelModule]);
+ModuleRegistry.registerModules([InfiniteRowModelModule]);
+
+const token = () => {
+	const t = localStorage.getItem("ariya_token") || sessionStorage.getItem("ariya_token") || "";
+	const cookie = document.cookie.match(/(?:^|;\s*)ariya_token=([^;]*)/);
+	return t || (cookie ? decodeURIComponent(cookie[1]) : "");
+};
 
 export default function LogBrowser() {
 	const nav = useNavigate();
-	const [rowData, setRowData] = useState<any[]>([]);
-	const [loading, setLoading] = useState(true);
-	const gridRef = useRef<AgGridReact>(null);
 	const savedSize = parseInt(localStorage.getItem("browse_page_size") || "20") || 20;
 
-	useEffect(() => {
-		fetch(apiUrl("/admin/browse?_ajax=1&page=1&size=2000&sort[0][field]=time&sort[0][dir]=desc"))
-			.then((r) => r.json())
-			.then((data) => { setRowData(data.data || []); setLoading(false); })
-			.catch(() => setLoading(false));
+	const dataSource = {
+		getRows: (params: any) => {
+			const size = params.endRow - params.startRow;
+			const page = Math.floor(params.startRow / size) + 1;
+			let sortStr = "";
+			if (params.sortModel?.length) {
+				sortStr = "&sort[0][field]=" + encodeURIComponent(params.sortModel[0].colId) + "&sort[0][dir]=" + encodeURIComponent(params.sortModel[0].sort);
+			}
+			const url = "/admin/browse?_ajax=1&page=" + page + "&size=" + size + sortStr + "&token=" + encodeURIComponent(token());
+			fetch(url)
+				.then((r) => r.json())
+				.then((data) => {
+					params.successCallback(data.data || [], data.total || 0);
+				})
+				.catch(() => params.failCallback());
+		},
+	};
+
+	const onGridReady = useCallback((event: any) => {
+		event.api.setGridOption("datasource", dataSource);
+	}, []);
+
+	const onPaginationChanged = useCallback((event: any) => {
+		try { localStorage.setItem("browse_page_size", String(event.api.paginationGetPageSize())); } catch {}
 	}, []);
 
 	const colDefs: any[] = [
@@ -39,29 +60,22 @@ export default function LogBrowser() {
 		{ field: "hash", headerName: t("browse.col_hash"), width: 70 },
 	];
 
-	const onRowClicked = useCallback((event: any) => {
-		if (event.data?.id) nav("/admin/logs?hash=" + encodeURIComponent(event.data.id));
-	}, [nav]);
-
-	const onPaginationChanged = useCallback(() => {
-		const api = gridRef.current?.api;
-		if (api) localStorage.setItem("browse_page_size", String(api.paginationGetPageSize()));
-	}, []);
-
-	if (loading) return <p style={{ color: "#94a3b8", padding: "2rem" }}>Loading...</p>;
-
 	return (
-		<div className="ag-theme-quartz-dark" style={{ height: "calc(100vh - 120px)", width: "100%" }}>
+		<div className="ag-theme-quartz" style={{ height: "calc(100vh - 120px)", width: "100%" }}>
 			<AgGridReact
-				ref={gridRef}
-				rowData={rowData}
 				columnDefs={colDefs}
 				defaultColDef={{ resizable: true }}
+				rowModelType="infinite"
 				pagination={true}
 				paginationPageSize={savedSize}
 				paginationPageSizeSelector={[10, 20, 50]}
-				onRowClicked={onRowClicked}
+				cacheBlockSize={savedSize}
+				maxBlocksInCache={1}
+				onGridReady={onGridReady}
 				onPaginationChanged={onPaginationChanged}
+				onRowClicked={(event: any) => {
+					if (event.data?.id) nav("/admin/logs?hash=" + encodeURIComponent(event.data.id));
+				}}
 			/>
 		</div>
 	);
