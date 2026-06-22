@@ -153,7 +153,13 @@ async function handleAccessJwt(env: Env, jwt: string): Promise<AuthUser | null> 
 // --- Main auth entry point ---
 
 export async function getAuthUser(request: Request, env: Env, token: string): Promise<AuthUser | null> {
-	// 0. Fallback to cookie if no URL token
+	// 0. Check Authorization header (SPA uses this)
+	const authHeader = request.headers.get("Authorization");
+	if (!token && authHeader?.startsWith("Bearer ")) {
+		token = authHeader.slice(7);
+	}
+
+	// 0b. Fallback to cookie if no URL token
 	if (!token) {
 		const cookieToken = getCookie(request, "ariya_token");
 		if (cookieToken) token = cookieToken;

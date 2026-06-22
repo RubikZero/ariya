@@ -10,9 +10,10 @@
     "test": "vitest",
     "cf-typegen": "wrangler types",
     "build:strings": "node scripts/generate-strings.mjs",
+    "build:frontend": "cd frontend && npm run build",
     "setup": "node scripts/setup.mjs",
     "gen-key": "node -e \"console.log(require('crypto').randomBytes(32).toString('hex'))\"",
-    "predeploy": "npm run build:strings",
+    "predeploy": "npm run build:strings && npm run build:frontend",
     "predev": "npm run build:strings",
     "pretest": "npm run build:strings"
   },

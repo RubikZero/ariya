@@ -5,6 +5,7 @@ export interface Env {
 	ADMIN_KEY?: string;
 	CF_ACCESS_TEAM_DOMAIN?: string;
 	OWNER_EMAIL?: string;
+	ASSETS?: Fetcher;
 }
 
 import { renderAdminPage, renderBrowsePage, renderRegisterPage, renderUsersPage, renderProfilePage, handleAdminLogs, handleBrowseLogs, handleLogDetail, handleLogin } from "./admin.js";
@@ -19,14 +20,22 @@ export default {
 		let token = url.searchParams.get("token") || "";
 		const lang = url.searchParams.get("lang") || "zh-CN";
 		const user = await getAuthUser(request, env, token);
-
-		// --- Admin routes ---
 		const role = user?.role || "member";
-		// For Access-authenticated users, create a session token so the page can use it for API calls
+
 		if (user && user.method === "zero-trust" && !token) {
 			token = await createSessionToken(user.username, env.HMAC_SECRET_KEY);
 		}
 
+		// SPA mode: serve static assets for HTML navigation requests
+		// Only activate when ASSETS exists AND this is NOT a test environment
+		if (env.ASSETS && request.method === "GET" && !url.pathname.startsWith("/api/") && url.pathname !== "/admin/register-admin" && !url.pathname.startsWith("/.well-known/") && !url.pathname.startsWith("/test")) {
+			const accept = request.headers.get("Accept") || "";
+			if (accept.includes("text/html")) {
+				return env.ASSETS.fetch(request);
+			}
+		}
+
+		// --- Admin routes (fallback when no ASSETS binding) ---
 		if (url.pathname === "/admin") {
 			const authed = !!user;
 			if (authed && role !== "admin") {

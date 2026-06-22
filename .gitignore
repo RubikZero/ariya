@@ -156,6 +156,9 @@ dist
 temp/
 tmp/
 
+# frontend build output
+frontend/dist
+
 
 
 # yarn v2

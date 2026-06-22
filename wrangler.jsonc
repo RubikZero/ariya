@@ -17,5 +17,7 @@
 			"database_name": "ariya-sts2-mod-logs",
 			"database_id": "__D1_DATABASE_ID__"
 		}
-	]
+	],
+	// Uncomment for production SPA mode:
+	// "assets": { "directory": "frontend/dist", "binding": "ASSETS" }
 }
