@@ -21,7 +21,7 @@ function ProtectedRoute({ children, adminOnly = false }: { children: ReactNode; 
 function GuestRoute({ children }: { children: ReactNode }) {
 	const { user, loading } = useAuth();
 	if (loading) return null;
-	if (user) return <Navigate to="/admin/browse" replace />;
+	if (user) return <Navigate to={user.role === "admin" ? "/admin" : "/admin/browse"} replace />;
 	return <>{children}</>;
 }
 
