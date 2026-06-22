@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { useAuth } from "../auth";
 import { Link } from "react-router-dom";
-import { t, setLocale } from "../locale";
+import { useLocale } from "../locale";
 
 export default function Login() {
 	const { login } = useAuth();
+	const { t, setLocale, lang } = useLocale();
 	const [username, setUsername] = useState("");
 	const [password, setPassword] = useState("");
 	const [error, setError] = useState("");
@@ -24,7 +25,7 @@ export default function Login() {
 		}
 	}
 
-	const currentLang = localStorage.getItem("ariya_locale") || (navigator.language?.startsWith("zh") ? "zh-CN" : "en");
+	const currentLang = lang;
 
 	return (
 		<div style={containerStyle}>

@@ -1,20 +1,19 @@
 import { useState } from "react";
 import { Outlet, Link, useLocation } from "react-router-dom";
 import { useAuth } from "../auth";
-import { t, setLocale } from "../locale";
+import { useLocale } from "../locale";
 
 export function Layout() {
 	const { user, logout } = useAuth();
 	const loc = useLocation();
 	const role = user?.role || "member";
 	const [collapsed, setCollapsed] = useState(false);
+	const { t, lang: currentLang, setLocale } = useLocale();
 
 	const isActive = (path: string) => {
 		if (path === "/admin") return loc.pathname === "/admin";
 		return loc.pathname.startsWith(path);
 	};
-
-	const currentLang = localStorage.getItem("ariya_locale") || (navigator.language?.startsWith("zh") ? "zh-CN" : "en");
 	const w = collapsed ? 48 : 200;
 
 	return (
