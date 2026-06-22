@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { api, setToken } from "../api";
-import { useNavigate, Link } from "react-router-dom";
+import { useAuth } from "../auth";
+import { Link } from "react-router-dom";
 
 export default function Login() {
-	const nav = useNavigate();
+	const { login } = useAuth();
 	const [username, setUsername] = useState("");
 	const [password, setPassword] = useState("");
 	const [error, setError] = useState("");
@@ -14,11 +14,8 @@ export default function Login() {
 		setError("");
 		setBusy(true);
 		try {
-			const data = await api<{ token: string; role: string }>("/admin/login", {
-				method: "POST", body: JSON.stringify({ username, password }),
-			});
-			setToken(data.token, true);
-			nav(data.role === "admin" ? "/admin" : "/admin/browse", { replace: true });
+			await login(username, password);
+			// login() in auth context handles navigation based on role
 		} catch (err: any) {
 			setError(err.message);
 		} finally {
@@ -64,5 +61,4 @@ const inputStyle: React.CSSProperties = {
 const btnStyle: React.CSSProperties = {
 	padding: "0.625rem", fontSize: "0.875rem", fontWeight: 500, background: "#3b82f6",
 	color: "#fff", border: "none", borderRadius: "0.375rem", cursor: "pointer", width: "100%",
-	opacity: 1,
 };

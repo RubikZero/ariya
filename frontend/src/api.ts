@@ -28,7 +28,6 @@ export async function api<T = any>(path: string, options: RequestInit = {}): Pro
 	const resp = await fetch(BASE + path, { ...options, headers });
 	if (resp.status === 401) {
 		clearToken();
-		window.location.href = "/";
 		throw new Error("Unauthorized");
 	}
 	if (!resp.ok) {
