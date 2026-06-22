@@ -1,9 +1,10 @@
 import { useState, useCallback } from "react";
 import { apiUrl } from "../api";
 import { useNavigate } from "react-router-dom";
-import { t } from "../locale";
+import { useLocale } from "../locale";
 
 export default function Dashboard() {
+	const { t } = useLocale();
 	const [generatedKey, setGeneratedKey] = useState("");
 	const [copied, setCopied] = useState(false);
 	const [testKey, setTestKey] = useState("");

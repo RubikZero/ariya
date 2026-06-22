@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { t } from "../locale";
+import { useLocale } from "../locale";
 
 import { AgGridReact } from "@ag-grid-community/react";
 import { ModuleRegistry } from "@ag-grid-community/core";
@@ -17,6 +17,7 @@ const token = () => {
 };
 
 export default function LogBrowser() {
+	const { t, lang } = useLocale();
 	const nav = useNavigate();
 	const savedSize = parseInt(localStorage.getItem("browse_page_size") || "20") || 20;
 
@@ -62,7 +63,7 @@ export default function LogBrowser() {
 
 	return (
 		<div className="ag-theme-quartz" style={{ height: "calc(100vh - 120px)", width: "100%" }}>
-			<AgGridReact
+			<AgGridReact key={lang}
 				columnDefs={colDefs}
 				defaultColDef={{ resizable: true }}
 				rowModelType="infinite"
