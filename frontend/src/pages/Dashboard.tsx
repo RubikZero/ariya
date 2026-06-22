@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { apiUrl } from "../api";
 import { useNavigate } from "react-router-dom";
+import { t } from "../locale";
 
 export default function Dashboard() {
 	const [generatedKey, setGeneratedKey] = useState("");
@@ -76,33 +77,33 @@ export default function Dashboard() {
 	return (
 		<>
 			<div style={cardStyle}>
-				<h2 style={h2Style}>Generate HMAC Key</h2>
-				<p style={descStyle}>Ariya uses HMAC-SHA256 to verify requests from the mod.</p>
+				<h2 style={h2Style}>{t("dashboard.key_title")}</h2>
+				<p style={descStyle}>{t("dashboard.key_desc")}</p>
 				<div style={{ display: "flex", gap: "0.5rem", alignItems: "center", marginBottom: "0.75rem" }}>
-					<input readOnly value={generatedKey} placeholder="Click generate" style={{ ...inputStyle, flex: 1, marginBottom: 0 }} />
-					<button onClick={generateKey} style={btnPrm}>Generate</button>
-					<button onClick={copyKey} style={btnSec}>Copy</button>
-					{copied && <span style={{ fontSize: "0.75rem", color: "#22c55e" }}>Copied</span>}
+					<input readOnly value={generatedKey} placeholder={t("dashboard.key_placeholder")} style={{ ...inputStyle, flex: 1, marginBottom: 0 }} />
+					<button onClick={generateKey} style={btnPrm}>{t("dashboard.key_generate")}</button>
+					<button onClick={copyKey} style={btnSec}>{t("dashboard.key_copy")}</button>
+					{copied && <span style={{ fontSize: "0.75rem", color: "#22c55e" }}>{t("dashboard.key_copied")}</span>}
 				</div>
 			</div>
 
 			<div style={cardStyle}>
-				<h2 style={h2Style}>Test Submission</h2>
-				<p style={descStyle}>Send a test log to verify the end-to-end flow.</p>
-				<label style={labelStyle}>HMAC Key</label>
-				<input value={testKey} onChange={(e) => setTestKey(e.target.value)} style={inputStyle} placeholder="Paste HMAC key" />
-				<label style={labelStyle}>Request URL</label>
+				<h2 style={h2Style}>{t("dashboard.test_title")}</h2>
+				<p style={descStyle}>{t("dashboard.test_desc")}</p>
+				<label style={labelStyle}>{t("dashboard.test_key_label")}</label>
+				<input value={testKey} onChange={(e) => setTestKey(e.target.value)} style={inputStyle} placeholder={t("dashboard.test_key_label")} />
+				<label style={labelStyle}>{t("dashboard.test_url_label")}</label>
 				<input value={testUrl} onChange={(e) => setTestUrl(e.target.value)} style={inputStyle} placeholder="http://localhost:8787" />
-				<button onClick={testSubmit} disabled={testBusy} style={btnSuc}>{testBusy ? "Sending..." : "Send Test Request"}</button>
+				<button onClick={testSubmit} disabled={testBusy} style={btnSuc}>{testBusy ? t("dashboard.test_sending") : t("dashboard.test_btn")}</button>
 				{testResult && <div style={{ marginTop: "0.75rem", padding: "0.75rem", borderRadius: "0.375rem", fontSize: "0.8125rem", fontFamily: "monospace", whiteSpace: "pre-wrap", background: testResult.ok ? "rgba(34,197,94,0.1)" : "rgba(239,68,68,0.1)", color: testResult.ok ? "#86efac" : "#fca5a5" }}>{testResult.text}</div>}
 			</div>
 
 			<div style={cardStyle}>
-				<h2 style={h2Style}>Recent Submissions</h2>
-				<button onClick={loadLogs} disabled={logsBusy} style={btnPrm}>{logsBusy ? "Loading..." : "Load Logs"}</button>
+				<h2 style={h2Style}>{t("dashboard.logs_title")}</h2>
+				<button onClick={loadLogs} disabled={logsBusy} style={btnPrm}>{logsBusy ? t("dashboard.logs_loading") : t("dashboard.logs_btn")}</button>
 				{recentLogs.length > 0 && (
 					<table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.8125rem", marginTop: "0.75rem" }}>
-						<thead><tr>{["Time", "Mod", "Version", "Error", "Count"].map((h) => <th key={h} style={thStyle}>{h}</th>)}</tr></thead>
+						<thead><tr>{[t("browse.col_time"), t("browse.col_mod"), t("browse.col_version"), t("browse.col_error"), t("browse.col_count")].map((h) => <th key={h} style={thStyle}>{h}</th>)}</tr></thead>
 						<tbody>
 							{recentLogs.map((log: any) => (
 								<tr key={log.hash} onClick={() => nav("/admin/logs?hash=" + encodeURIComponent(log.hash))} style={{ cursor: "pointer" }}>

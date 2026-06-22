@@ -1,5 +1,6 @@
 import { Outlet, Link, useLocation } from "react-router-dom";
 import { useAuth } from "../auth";
+import { t, setLocale } from "../locale";
 
 export function Layout() {
 	const { user, logout } = useAuth();
@@ -10,6 +11,8 @@ export function Layout() {
 		return loc.pathname === path || loc.pathname.startsWith(path + "/") ? "active" : "";
 	}
 
+	const currentLang = localStorage.getItem("ariya_locale") || (navigator.language?.startsWith("zh") ? "zh-CN" : "en");
+
 	return (
 		<div style={{ display: "flex", minHeight: "100vh", background: "#0f172a", color: "#e2e8f0" }}>
 			<nav style={{ width: 200, minWidth: 200, background: "#1e293b", borderRight: "1px solid #334155", padding: "1rem", display: "flex", flexDirection: "column", gap: "0.25rem" }}>
@@ -18,22 +21,30 @@ export function Layout() {
 				</div>
 				{role === "admin" && (
 					<Link to="/admin" className={isActive("/admin")} style={navLinkStyle}>
-						Dashboard
+						{t("nav.dashboard")}
 					</Link>
 				)}
 				<Link to="/admin/browse" className={isActive("/admin/browse")} style={navLinkStyle}>
-					Log Browser
+					{t("nav.browse")}
 				</Link>
 				<Link to="/admin/profile" className={isActive("/admin/profile")} style={navLinkStyle}>
-					Profile
+					{t("nav.profile")}
 				</Link>
 				{role === "admin" && (
 					<Link to="/admin/users" className={isActive("/admin/users")} style={navLinkStyle}>
-						Members
+						{t("nav.members")}
 					</Link>
 				)}
 				<div style={{ marginTop: "auto" }}>
-					<button onClick={logout} style={{ ...btnStyle, width: "100%", marginTop: "0.5rem" }}>Logout</button>
+					<select
+						value={currentLang}
+						onChange={(e) => setLocale(e.target.value)}
+						style={{ width: "100%", padding: "0.375rem 0.5rem", background: "#0f172a", color: "#e2e8f0", border: "1px solid #475569", borderRadius: "0.375rem", fontSize: "0.8125rem", cursor: "pointer", marginTop: "0.5rem" }}
+					>
+						<option value="zh-CN">中文</option>
+						<option value="en">English</option>
+					</select>
+					<button onClick={logout} style={{ ...btnStyle, width: "100%", marginTop: "0.5rem" }}>{t("nav.logout")}</button>
 				</div>
 			</nav>
 			<main style={{ flex: 1, padding: "1.5rem", overflowX: "auto" }}>

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "../auth";
 import { Link } from "react-router-dom";
+import { t, setLocale } from "../locale";
 
 export default function Login() {
 	const { login } = useAuth();
@@ -23,19 +24,28 @@ export default function Login() {
 		}
 	}
 
+	const currentLang = localStorage.getItem("ariya_locale") || (navigator.language?.startsWith("zh") ? "zh-CN" : "en");
+
 	return (
 		<div style={containerStyle}>
+			<div style={{ position: "absolute", top: "1rem", right: "1rem" }}>
+				<select value={currentLang} onChange={(e) => setLocale(e.target.value)}
+					style={{ padding: "0.375rem 0.75rem", background: "#0f172a", color: "#e2e8f0", border: "1px solid #475569", borderRadius: "0.375rem", fontSize: "0.8125rem", cursor: "pointer" }}>
+					<option value="zh-CN">中文</option>
+					<option value="en">English</option>
+				</select>
+			</div>
 			<form onSubmit={handleSubmit} style={cardStyle}>
 				<h1 style={{ fontSize: "1.25rem", fontWeight: 700, marginBottom: "0.25rem", color: "#f8fafc" }}>Ariya</h1>
-				<p style={{ fontSize: "0.875rem", color: "#94a3b8", marginBottom: "1.5rem" }}>Sign in to admin panel</p>
+				<p style={{ fontSize: "0.875rem", color: "#94a3b8", marginBottom: "1.5rem" }}>{t("login.desc")}</p>
 				{error && <p style={{ color: "#fca5a5", fontSize: "0.8125rem", marginBottom: "0.75rem", padding: "0.5rem", background: "rgba(239,68,68,0.1)", borderRadius: "0.375rem" }}>{error}</p>}
-				<label style={labelStyle}>Username</label>
+				<label style={labelStyle}>{t("login.title")}</label>
 				<input value={username} onChange={(e) => setUsername(e.target.value)} style={inputStyle} autoComplete="username" disabled={busy} />
 				<label style={labelStyle}>Password</label>
 				<input type="password" value={password} onChange={(e) => setPassword(e.target.value)} style={inputStyle} autoComplete="current-password" disabled={busy} />
-				<button type="submit" disabled={busy} style={btnStyle}>{busy ? "Signing in..." : "Sign In"}</button>
+				<button type="submit" disabled={busy} style={btnStyle}>{busy ? t("login.loading") : t("login.btn")}</button>
 				<p style={{ textAlign: "center", marginTop: "1rem", fontSize: "0.8125rem", color: "#94a3b8" }}>
-					No account? <Link to="/register" style={{ color: "#3b82f6", textDecoration: "none" }}>Register</Link>
+					{t("login.no_account")} <Link to="/register" style={{ color: "#3b82f6", textDecoration: "none" }}>{t("login.register")}</Link>
 				</p>
 			</form>
 		</div>
