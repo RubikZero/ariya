@@ -31,8 +31,10 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Generate locale strings
-        run: npm run build:strings
+      - name: Build frontend
+        run: npm run predeploy
+        env:
+          CI: true
 
       - name: Inject D1 database ID
         run: node -e "require('fs').writeFileSync('wrangler.jsonc', require('fs').readFileSync('wrangler.jsonc','utf-8').replace('__D1_DATABASE_ID__', process.env.D1_DATABASE_ID))"
