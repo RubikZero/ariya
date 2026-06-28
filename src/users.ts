@@ -160,3 +160,8 @@ export async function handleCreateInviteCode(env: Env, caller: AuthUser, body: {
 		.bind(code, caller.username, expiresAt).run();
 	return new Response(JSON.stringify({ code, expires_at: expiresAt }));
 }
+
+export async function handleUserCount(env: Env): Promise<Response> {
+	const count = await env.DB.prepare("SELECT COUNT(*) as count FROM users").first<number>("count") || 0;
+	return new Response(JSON.stringify({ count }));
+}

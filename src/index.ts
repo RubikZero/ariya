@@ -12,7 +12,7 @@ import { handleAdminLogs, handleBrowseLogs, handleLogin } from "./admin.js";
 import { createSessionToken } from "./auth.js";
 import { handleLogSubmission } from "./logs.js";
 import { getAuthUser, requireAdmin, requireAuth } from "./auth.js";
-import { handleRegister, handleMe, handleUpdateNickname, handleUpdatePassword, handleListUsers, handleUpdateRole, handleRemoveUser, handleTransferOwnership, handleCreateInviteCode } from "./users.js";
+import { handleRegister, handleMe, handleUpdateNickname, handleUpdatePassword, handleListUsers, handleUpdateRole, handleRemoveUser, handleTransferOwnership, handleCreateInviteCode, handleUserCount } from "./users.js";
 
 export default {
 	async fetch(request, env, ctx): Promise<Response> {
@@ -110,6 +110,9 @@ export default {
 			const blocked = requireAdmin(user); if (blocked) return blocked;
 			const body = await request.json() as any;
 			return handleTransferOwnership(env, user!, body);
+		}
+		if (url.pathname === "/api/users/count") {
+			return handleUserCount(env);
 		}
 
 		if (url.pathname === "/api/logs/detail") {
