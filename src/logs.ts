@@ -12,13 +12,24 @@ export interface LogPayload {
 	created_at: number;
 }
 
+function withCors(res: Response): Response {
+	const headers = new Headers(res.headers);
+	headers.set("Access-Control-Allow-Origin", "*");
+	headers.set("Access-Control-Allow-Methods", "POST, OPTIONS");
+	headers.set("Access-Control-Allow-Headers", "Content-Type, X-Mod-Signature");
+	return new Response(res.body, { status: res.status, statusText: res.statusText, headers });
+}
+
 export async function handleLogSubmission(request: Request, env: Env): Promise<Response> {
+	if (request.method === "OPTIONS") {
+		return withCors(new Response(null, { status: 204 }));
+	}
 	if (request.method !== "POST") {
-		return new Response("Method Not Allowed", { status: 405 });
+		return withCors(new Response("Method Not Allowed", { status: 405 }));
 	}
 
 	const clientSignature = request.headers.get("X-Mod-Signature");
-	if (!clientSignature) return new Response("Unauthorized", { status: 401 });
+	if (!clientSignature) return withCors(new Response("Unauthorized", { status: 401 }));
 
 	try {
 		const rawBody = await request.text();
@@ -35,7 +46,7 @@ export async function handleLogSubmission(request: Request, env: Env): Promise<R
 		const isValid = await crypto.subtle.verify("HMAC", cryptoKey, signatureBuffer, encoder.encode(rawBody));
 
 		if (!isValid) {
-			return new Response("Forbidden: Invalid HMAC", { status: 403 });
+			return withCors(new Response("Forbidden: Invalid HMAC", { status: 403 }));
 		}
 
 		const logData = JSON.parse(rawBody) as LogPayload;
@@ -44,7 +55,7 @@ export async function handleLogSubmission(request: Request, env: Env): Promise<R
 		const now = Date.now();
 		if (Math.abs(now - created_at) > env.TIMEOUT * 1000) {
 			console.warn(`Expired request, time: ${new Date(created_at).toString()}, now: ${new Date(now).toString()}`);
-			return new Response("Forbidden: Request expired", { status: 422 });
+			return withCors(new Response("Forbidden: Request expired", { status: 422 }));
 		}
 
 		const hashInput = [mod_id, mod_version, game_version || "", error_message, stack_trace].join("|");
@@ -65,15 +76,15 @@ export async function handleLogSubmission(request: Request, env: Env): Promise<R
 			.bind(hash, mod_id, mod_version, game_version || null, error_message, stack_trace, game_state || null, player_os || null, os_version || null, created_at)
 			.first<number>("count") || 0;
 
-		return new Response(JSON.stringify({ success: true, count }), {
+		return withCors(new Response(JSON.stringify({ success: true, count }), {
 			status: 200,
 			headers: { "Content-Type": "application/json" },
-		});
+		}));
 	} catch (error: any) {
 		console.log(error);
-		return new Response(JSON.stringify({ error: error.message }), {
+		return withCors(new Response(JSON.stringify({ error: error.message }), {
 			status: 500,
 			headers: { "Content-Type": "application/json" },
-		});
+		}));
 	}
 }
