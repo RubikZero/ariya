@@ -8,7 +8,7 @@ export default function Dashboard() {
 	const [generatedKey, setGeneratedKey] = useState("");
 	const [copied, setCopied] = useState(false);
 	const [testKey, setTestKey] = useState("");
-	const [testUrl, setTestUrl] = useState(window.location.origin);
+	const [testUrl, setTestUrl] = useState(import.meta.env.DEV ? "http://localhost:8787" : window.location.origin);
 	const [testResult, setTestResult] = useState<{ ok: boolean; text: string } | null>(null);
 	const [testBusy, setTestBusy] = useState(false);
 	const [recentLogs, setRecentLogs] = useState<any[]>([]);

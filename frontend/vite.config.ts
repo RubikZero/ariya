@@ -7,8 +7,14 @@ export default defineConfig({
 		port: 5173,
 		proxy: {
 			"/api": { target: "http://localhost:8787", changeOrigin: true },
-			"/admin": { target: "http://localhost:8787", changeOrigin: true },
-			"/register": { target: "http://localhost:8787", changeOrigin: true },
+			"/admin": {
+				target: "http://localhost:8787",
+				changeOrigin: true,
+				bypass: (req) => {
+					// Let Vite handle SPA page navigations
+					if (req.headers.accept?.includes("text/html")) return req.url;
+				},
+			},
 		},
 	},
 });
