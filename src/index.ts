@@ -8,7 +8,7 @@ export interface Env {
 	ASSETS?: Fetcher;
 }
 
-import { renderAdminPage, renderBrowsePage, renderRegisterPage, renderUsersPage, renderProfilePage, handleAdminLogs, handleBrowseLogs, handleLogDetail, handleLogin } from "./admin.js";
+import { handleAdminLogs, handleBrowseLogs, handleLogin } from "./admin.js";
 import { createSessionToken } from "./auth.js";
 import { handleLogSubmission } from "./logs.js";
 import { getAuthUser, requireAdmin, requireAuth } from "./auth.js";
@@ -18,7 +18,6 @@ export default {
 	async fetch(request, env, ctx): Promise<Response> {
 		const url = new URL(request.url);
 		let token = url.searchParams.get("token") || "";
-		const lang = url.searchParams.get("lang") || "zh-CN";
 		const user = await getAuthUser(request, env, token);
 		const role = user?.role || "member";
 
@@ -26,54 +25,21 @@ export default {
 			token = await createSessionToken(user.username, env.HMAC_SECRET_KEY);
 		}
 
-		// SPA mode: serve static assets for HTML navigation requests
-		// Only activate when ASSETS exists AND this is NOT a test environment
-		if (env.ASSETS && request.method === "GET" && !url.pathname.startsWith("/api/") && url.pathname !== "/admin/register-admin" && !url.pathname.startsWith("/.well-known/") && !url.pathname.startsWith("/test")) {
+		// SPA mode: serve index.html for HTML navigation requests
+		if (env.ASSETS && request.method === "GET" && !url.pathname.startsWith("/api/") && !url.pathname.startsWith("/admin/login") && !url.pathname.startsWith("/admin/register-admin") && !url.pathname.startsWith("/.well-known/") && !url.pathname.startsWith("/test")) {
 			const accept = request.headers.get("Accept") || "";
 			if (accept.includes("text/html")) {
 				return env.ASSETS.fetch(request);
 			}
 		}
 
-		// --- Admin routes (fallback when no ASSETS binding) ---
-		if (url.pathname === "/admin") {
-			const authed = !!user;
-			if (authed && role !== "admin") {
-				return Response.redirect(url.origin + "/admin/browse?token=" + encodeURIComponent(token) + "&lang=" + encodeURIComponent(lang), 302);
-			}
-			return renderAdminPage(env, authed, authed ? token : "", request, lang, role);
-		}
-		if (url.pathname === "/admin/logs") {
-			const blocked = requireAuth(user);
-			if (blocked) return blocked;
-			const hash = url.searchParams.get("hash") || "";
-			const from = url.searchParams.get("from") || "";
-			if (hash) return handleLogDetail(env, hash, token, lang as any, from || undefined);
-			return handleAdminLogs(env);
-		}
-		if (url.pathname === "/admin/browse") {
-			const blocked = requireAuth(user);
-			if (blocked) return blocked;
-			if (url.searchParams.has("_ajax")) return handleBrowseLogs(env, request);
-			return renderBrowsePage(token, lang, role);
-		}
-		if (url.pathname === "/admin/users") {
-			const blocked = requireAdmin(user);
-			if (blocked) return blocked;
-			return renderUsersPage(token, lang, role);
-		}
-		if (url.pathname === "/admin/profile") {
-			const blocked = requireAuth(user);
-			if (blocked) return blocked;
-			return renderProfilePage(token, lang, role);
-		}
+		// --- Admin API ---
 		if (url.pathname === "/admin/login" && request.method === "POST") {
 			const body = await request.json() as any;
 			return handleLogin(env, body);
 		}
 		if (url.pathname === "/admin/register-admin" && request.method === "POST") {
 			const body = await request.json() as any;
-			// Check if any users exist — if not, create first admin
 			const existing = await env.DB.prepare("SELECT COUNT(*) as count FROM users").first<number>("count");
 			if (existing && existing > 0) {
 				return new Response(JSON.stringify({ error: "Users already exist. Use invite codes instead." }), { status: 403 });
@@ -93,6 +59,19 @@ export default {
 			await env.DB.prepare("INSERT INTO users (username, nickname, password_hash, role, auth_method) VALUES (?, ?, ?, 'admin', 'password')")
 				.bind(body.username, body.username, saltHex + ":" + hashHex).run();
 			return new Response(JSON.stringify({ success: true, message: "Admin registered. You can now log in." }));
+		}
+		if (url.pathname === "/admin/logs") {
+			const blocked = requireAuth(user);
+			if (blocked) return blocked;
+			return handleAdminLogs(env);
+		}
+		if (url.pathname === "/admin/browse") {
+			const blocked = requireAuth(user);
+			if (blocked) return blocked;
+			return handleBrowseLogs(env, request);
+		}
+		if (url.pathname === "/admin/login" && request.method === "GET") {
+			return Response.redirect(url.origin + "/", 302);
 		}
 
 		// --- User management API ---
@@ -160,17 +139,9 @@ export default {
 			const body = await request.json() as any;
 			return handleRegister(env, body);
 		}
-		if (url.pathname === "/register") {
-			return renderRegisterPage(lang);
-		}
 
 		if (url.pathname === "/favicon.ico" || url.pathname.startsWith("/.well-known/")) {
 			return new Response(null, { status: 204 });
-		}
-
-		// Redirect /admin/login to /admin for the login page
-		if (url.pathname === "/admin/login" && request.method === "GET") {
-			return Response.redirect(url.origin + "/admin", 302);
 		}
 
 		return handleLogSubmission(request, env);

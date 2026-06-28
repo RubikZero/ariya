@@ -18,6 +18,5 @@
 			"database_id": "__D1_DATABASE_ID__"
 		}
 	],
-	// Uncomment for production SPA mode:
-	// "assets": { "directory": "frontend/dist", "binding": "ASSETS" }
+	"assets": { "directory": "frontend/dist", "binding": "ASSETS" }
 }

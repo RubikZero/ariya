@@ -1,6 +1,4 @@
-import type { Lang } from "./strings.js";
 import type { Env } from "./index.js";
-import { renderAdminPage, renderDetailPage, renderBrowsePage, renderRegisterPage, renderUsersPage, renderProfilePage } from "./admin-ui.js";
 import { createSessionToken } from "./auth.js";
 
 // Handles login against the users table
@@ -79,20 +77,4 @@ export async function handleBrowseLogs(env: Env, request: Request): Promise<Resp
 	}
 }
 
-export async function handleLogDetail(env: Env, hash: string, token: string, lang: Lang = "zh-CN", from?: string): Promise<Response> {
-	try {
-		const log = await env.DB.prepare(
-			"SELECT hash, mod_id, mod_version, game_version, error_message, stack_trace, game_state, player_os, os_version, count, created_at FROM mod_errors WHERE hash = ?"
-		).bind(hash).first();
-		if (!log) {
-			return new Response("Not found", { status: 404 });
-		}
-		return new Response(renderDetailPage(log, token, lang, from), {
-			headers: { "Content-Type": "text/html; charset=utf-8" },
-		});
-	} catch (e: any) {
-		return new Response(JSON.stringify({ error: e.message }), { status: 500 });
-	}
-}
 
-export { renderAdminPage, renderBrowsePage, renderRegisterPage, renderUsersPage, renderProfilePage };
