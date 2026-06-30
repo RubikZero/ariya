@@ -2,9 +2,10 @@ import { useState, useEffect } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { apiUrl } from "../api";
 import { useLocale } from "../locale";
+import { translateGameState } from "../i18n/gameState";
 
 export default function LogDetail() {
-	const { t } = useLocale();
+	const { t, lang } = useLocale();
 	const [search] = useSearchParams();
 	const hash = search.get("hash") || "";
 	const [log, setLog] = useState<any>(null);
@@ -26,6 +27,7 @@ export default function LogDetail() {
 	if (!log) return <p style={{ color: "var(--accent-danger)", padding: "2rem" }}>{t("not_found")}</p>;
 
 	const gs = parseGameState(log.game_state);
+	const gsTranslated = gs ? translateGameState(gs, lang as "en" | "zh-CN") : null;
 
 	return (
 		<>
@@ -50,12 +52,12 @@ export default function LogDetail() {
 					<span key={i} style={{ display: "block", padding: "0.125rem 0", color: i === 0 ? "var(--accent-danger)" : "var(--text-secondary)", fontWeight: i === 0 ? 600 : 400 }}>{l}</span>
 				))}</pre>
 			</div>
-			{gs && (
+			{gsTranslated && (
 				<div className="card">
 					<h2>{t("detail.state")}</h2>
 					<table>
-						<tbody>{Object.entries(gs).map(([k, v]) => (
-							<tr key={k}><td style={{ color: "var(--text-secondary)", padding: "0.25rem 0.5rem" }}>{k}</td><td style={{ padding: "0.25rem 0.5rem" }}>{String(v)}</td></tr>
+						<tbody>{Object.entries(gsTranslated).map(([k, v]) => (
+							<tr key={k}><td style={{ color: "var(--text-secondary)", padding: "0.25rem 0.5rem" }}>{k}</td><td style={{ padding: "0.25rem 0.5rem" }}>{v}</td></tr>
 						))}</tbody>
 					</table>
 				</div>

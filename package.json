@@ -12,6 +12,7 @@
     "test": "vitest",
     "cf-typegen": "wrangler types",
     "build:frontend": "cd frontend && npm run build",
+    "build:localization": "node scripts/build-localization.mjs",
     "setup": "node scripts/setup.mjs",
     "setup:dev": "node scripts/setup.mjs dev",
     "gen-key": "node -e \"console.log(require('crypto').randomBytes(32).toString('hex'))\"",
