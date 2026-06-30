@@ -29,7 +29,8 @@ const FIELD_MAP: Record<string, { category: keyof TranslationData; separator?: s
 function translateValue(rawValue: string, category: keyof TranslationData, locale: Locale): string {
 	const table = data[locale]?.[category];
 	if (!table) return rawValue;
-	const translated = table[rawValue];
+	// Try direct match first, then try stripping prefix (e.g. ACT.HIVE -> HIVE, MONSTER.EXOSKELETON -> EXOSKELETON)
+	const translated = table[rawValue] ?? table[rawValue.replace(/^[A-Z_]+\./, "")];
 	if (!translated || translated === rawValue) return rawValue;
 	return `${rawValue} (${translated})`;
 }
