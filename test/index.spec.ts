@@ -60,12 +60,13 @@ describe("Ariya log endpoint", () => {
 		};
 	});
 
-	it("rejects GET requests with 405", async () => {
+	it("redirects browser GET / to /admin", async () => {
 		const request = new IncomingRequest("http://example.com");
 		const ctx = createExecutionContext();
 		const response = await worker.fetch(request, env, ctx);
 		await waitOnExecutionContext(ctx);
-		expect(response.status).toBe(405);
+		expect(response.status).toBe(302);
+		expect(response.headers.get("Location")).toBe("http://example.com/admin");
 	});
 
 	it("rejects POST without signature with 401", async () => {

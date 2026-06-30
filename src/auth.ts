@@ -175,18 +175,22 @@ export async function getAuthUser(request: Request, env: Env, token: string): Pr
 	// 2. Cf-Access email header fallback (also auto-registers)
 	const cfEmail = request.headers.get("Cf-Access-Authenticated-User-Email");
 	if (cfEmail) {
-		const user = await env.DB.prepare("SELECT username, role, auth_method FROM users WHERE email = ?").bind(cfEmail).first<{ username: string; role: string; auth_method: string }>();
-		if (user) {
-			await env.DB.prepare("UPDATE users SET last_active_at = datetime('now') WHERE email = ?").bind(cfEmail).run();
-			return { username: user.username, role: user.role as "admin" | "member", method: "zero-trust" };
+		try {
+			const user = await env.DB.prepare("SELECT username, role, auth_method FROM users WHERE email = ?").bind(cfEmail).first<{ username: string; role: string; auth_method: string }>();
+			if (user) {
+				await env.DB.prepare("UPDATE users SET last_active_at = datetime('now') WHERE email = ?").bind(cfEmail).run();
+				return { username: user.username, role: user.role as "admin" | "member", method: "zero-trust" };
+			}
+			// Auto-register if this is the owner email
+			const role: "admin" | "member" = (env.OWNER_EMAIL && cfEmail.toLowerCase() === env.OWNER_EMAIL.toLowerCase()) ? "admin" : "member";
+			console.log("Access auto-register:", cfEmail, role);
+			const username = cfEmail.split("@")[0];
+			await env.DB.prepare("INSERT INTO users (username, nickname, role, auth_method, email, last_active_at) VALUES (?, ?, ?, 'zero-trust', ?, datetime('now'))")
+				.bind(username, username, role, cfEmail).run();
+			return { username, role, method: "zero-trust" };
+		} catch (e) {
+			console.log("Access cfEmail auth error:", e);
 		}
-		// Auto-register if this is the owner email
-		const role: "admin" | "member" = (env.OWNER_EMAIL && cfEmail.toLowerCase() === env.OWNER_EMAIL.toLowerCase()) ? "admin" : "member";
-		console.log("Access auto-register:", cfEmail, role);
-		const username = cfEmail.split("@")[0];
-		await env.DB.prepare("INSERT INTO users (username, nickname, role, auth_method, email, last_active_at) VALUES (?, ?, ?, 'zero-trust', ?, datetime('now'))")
-			.bind(username, username, role, cfEmail).run();
-		return { username, role, method: "zero-trust" };
 	}
 
 	// 3. ADMIN_KEY env var
