@@ -1,6 +1,5 @@
 import translations from "./game-state.json";
-
-type Locale = "en" | "zh-CN";
+import type { SupportedLocale } from "../locale";
 
 type TranslationData = {
 	acts: Record<string, string>;
@@ -12,7 +11,7 @@ type TranslationData = {
 	scenes: Record<string, string>;
 };
 
-const data = translations as Record<Locale, TranslationData>;
+const data = translations as Record<SupportedLocale, TranslationData>;
 
 // Maps game_state field names to translation categories and value separators
 const FIELD_MAP: Record<string, { category: keyof TranslationData; separator?: string }> = {
@@ -26,7 +25,7 @@ const FIELD_MAP: Record<string, { category: keyof TranslationData; separator?: s
 	"combat.enemies": { category: "monsters", separator: ", " },
 };
 
-function translateValue(rawValue: string, category: keyof TranslationData, locale: Locale): string {
+function translateValue(rawValue: string, category: keyof TranslationData, locale: SupportedLocale): string {
 	const table = data[locale]?.[category];
 	if (!table) return rawValue;
 	// Try direct match first, then try stripping prefix (e.g. ACT.HIVE -> HIVE, MONSTER.EXOSKELETON -> EXOSKELETON)
@@ -37,7 +36,7 @@ function translateValue(rawValue: string, category: keyof TranslationData, local
 
 export function translateGameState(
 	state: Record<string, unknown>,
-	locale: Locale,
+	locale: SupportedLocale,
 ): Record<string, string> {
 	const result: Record<string, string> = {};
 	for (const [key, value] of Object.entries(state)) {

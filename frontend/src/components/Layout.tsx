@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Outlet, Link, useLocation } from "react-router-dom";
 import { useAuth } from "../auth";
-import { useLocale } from "../locale";
+import { useLocale, LOCALES, LANG_LABELS } from "../locale";
 
 export function Layout() {
 	const { user, logout } = useAuth();
@@ -36,8 +36,9 @@ export function Layout() {
 				<div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "1rem" }}>
 					<select value={currentLang} onChange={(e) => setLocale(e.target.value)}
 						style={{ padding: "0.375rem 0.75rem", background: "var(--bg-deep)", color: "var(--text-primary)", border: "1px solid var(--border-color)", borderRadius: "0.375rem", fontSize: "0.8125rem", cursor: "pointer" }}>
-						<option value="zh-CN">中文</option>
-						<option value="en">English</option>
+						{LOCALES.map((code) => (
+							<option key={code} value={code}>{LANG_LABELS[code]}</option>
+						))}
 					</select>
 				</div>
 				<Outlet />

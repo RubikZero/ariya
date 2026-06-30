@@ -24,6 +24,18 @@ if (!existsSync(SRC_DIR)) {
 const LANG_MAP = {
 	"en": "eng",
 	"zh-CN": "zhs",
+	"de": "deu",
+	"es": "esp",
+	"fr": "fra",
+	"it": "ita",
+	"ja": "jpn",
+	"ko": "kor",
+	"pl": "pol",
+	"pt-BR": "ptb",
+	"ru": "rus",
+	"es-419": "spa",
+	"th": "tha",
+	"tr": "tur",
 };
 
 // BBCode tags to strip: [tag]...[/tag] and [tag=value]

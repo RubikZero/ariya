@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "../auth";
 import { api } from "../api";
 import { Link } from "react-router-dom";
-import { useLocale } from "../locale";
+import { useLocale, LOCALES, LANG_LABELS } from "../locale";
 
 export default function Login() {
 	const { login } = useAuth();
@@ -73,8 +73,9 @@ export default function Login() {
 			<div style={{ position: "absolute", top: "1rem", right: "1rem" }}>
 				<select value={currentLang} onChange={(e) => setLocale(e.target.value)}
 					style={{ padding: "0.375rem 0.75rem", background: "#0f172a", color: "#e2e8f0", border: "1px solid #475569", borderRadius: "0.375rem", fontSize: "0.8125rem", cursor: "pointer" }}>
-					<option value="zh-CN">中文</option>
-					<option value="en">English</option>
+					{LOCALES.map((code) => (
+						<option key={code} value={code}>{LANG_LABELS[code]}</option>
+					))}
 				</select>
 			</div>
 

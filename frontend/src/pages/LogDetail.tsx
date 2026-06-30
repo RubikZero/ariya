@@ -27,7 +27,7 @@ export default function LogDetail() {
 	if (!log) return <p style={{ color: "var(--accent-danger)", padding: "2rem" }}>{t("not_found")}</p>;
 
 	const gs = parseGameState(log.game_state);
-	const gsTranslated = gs ? translateGameState(gs, lang as "en" | "zh-CN") : null;
+	const gsTranslated = gs ? translateGameState(gs, lang as any) : null;
 
 	return (
 		<>
