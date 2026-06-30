@@ -69,13 +69,15 @@ export function t(key: string): string {
 	return msgCache.get(currentLocale)?.[key] ?? msgCache.get(FALLBACK)?.[key] ?? key;
 }
 
-export function setLocale(lang: string) {
+export async function setLocale(lang: string) {
 	if ((LOCALES as readonly string[]).includes(lang)) {
+		await loadMessages(lang as SupportedLocale);
 		currentLocale = lang as SupportedLocale;
-		loadMessages(currentLocale);
+		localStorage.setItem("ariya_locale", lang);
+		listeners.forEach((fn) => fn());
+	} else {
+		localStorage.setItem("ariya_locale", lang);
 	}
-	localStorage.setItem("ariya_locale", lang);
-	listeners.forEach((fn) => fn());
 }
 
 export function subscribe(fn: () => void) {
