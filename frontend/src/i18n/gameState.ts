@@ -31,14 +31,14 @@ Promise.all([
 	import(`./game-state/${initialLocale}.json`),
 	...(initialLocale !== "en" ? [import(`./game-state/en.json`)] : []),
 ]).then(([main, fallback]) => {
-	cache.set(initialLocale, main as unknown as TranslationData);
-	if (fallback) cache.set("en", fallback as unknown as TranslationData);
+	cache.set(initialLocale, (main as any).default as TranslationData);
+	if (fallback) cache.set("en", (fallback as any).default as TranslationData);
 });
 
 export async function ensureGameState(locale: SupportedLocale): Promise<void> {
 	if (cache.has(locale)) return;
-	const data = await import(`./game-state/${locale}.json`);
-	cache.set(locale, data as unknown as TranslationData);
+	const mod = await import(`./game-state/${locale}.json`);
+	cache.set(locale, (mod as any).default as TranslationData);
 }
 
 const FIELD_MAP: Record<string, { category: keyof TranslationData; separator?: string }> = {

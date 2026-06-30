@@ -49,8 +49,8 @@ const msgCache = new Map<SupportedLocale, Record<string, string>>();
 
 async function loadMessages(locale: SupportedLocale) {
 	if (msgCache.has(locale)) return;
-	const data = await import(`./i18n/ui/${locale}.json`);
-	msgCache.set(locale, data as Record<string, string>);
+	const mod = await import(`./i18n/ui/${locale}.json`);
+	msgCache.set(locale, (mod as any).default as Record<string, string>);
 }
 
 // Preload current locale + fallback (en) on module init
