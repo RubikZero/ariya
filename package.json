@@ -4,7 +4,9 @@
   "private": true,
   "scripts": {
     "db:migrate": "wrangler d1 migrations apply DB --remote",
+    "db:migrate:dev": "wrangler d1 migrations apply DB --remote --config wrangler.dev.jsonc",
     "deploy": "npm run db:migrate && wrangler deploy",
+    "deploy:dev": "npm run build:frontend && npm run db:migrate:dev && wrangler deploy --config wrangler.dev.jsonc",
     "dev": "wrangler dev --port 8787 --remote --config wrangler.dev.jsonc",
     "start": "wrangler dev --config wrangler.dev.jsonc --remote",
     "test": "vitest",

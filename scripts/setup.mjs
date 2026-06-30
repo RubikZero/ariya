@@ -89,22 +89,39 @@ async function main() {
 	const hmacSecret = randomBytes(32).toString("hex");
 
 	const devConfigPath = join(ROOT, "wrangler.dev.jsonc");
+	const devConfigTemplatePath = join(ROOT, "wrangler.dev.jsonc.example");
 	const devVarsPath = join(ROOT, ".dev.vars");
 
 	if (existsSync(devConfigPath)) {
 		console.log("\n✅ wrangler.dev.jsonc 已存在，跳过创建。");
 	} else {
-		if (MODE_DEV_ONLY) {
-			console.log("\n📦 创建开发 D1 数据库...");
-		} else {
-			const ans = await question("\n📦 是否创建本地开发 D1 数据库？(Y/n): ");
-			if (ans.toLowerCase() === "n") {
-				console.log("   ⏭️  跳过。");
+		const devDbName = "ariya-sts2-mod-logs-dev";
+
+		// Try to find an existing dev D1 database first
+		let dbId;
+		try {
+			const list = runCapture("npx", ["wrangler", "d1", "list", "--json"]);
+			const dbs = JSON.parse(list);
+			const existing = dbs.find((d) => d.name === devDbName);
+			if (existing) {
+				dbId = existing.uuid;
+				console.log(`\n📦 使用已有的开发 D1 数据库 ${devDbName} (ID: ${dbId})`);
 			}
+		} catch {
+			// ignore list errors, will create below
 		}
 
-		if (!existsSync(devConfigPath)) {
-			const devDbName = "ariya-dev";
+		if (!dbId) {
+			if (MODE_DEV_ONLY) {
+				console.log(`\n📦 创建开发 D1 数据库 ${devDbName}...`);
+			} else {
+				const ans = await question(`\n📦 未找到开发 D1 数据库 ${devDbName}，是否创建？(Y/n): `);
+				if (ans.toLowerCase() === "n") {
+					console.log("   ⏭️  跳过开发环境配置。");
+					return;
+				}
+			}
+
 			let dbOutput;
 			try {
 				dbOutput = runCapture("npx", ["wrangler", "d1", "create", devDbName, "--json", "--experimental-backup"]);
@@ -125,25 +142,18 @@ async function main() {
 				}
 			}
 
-			const dbId = dbJson.uuid || dbJson.result?.uuid;
+			dbId = dbJson.uuid || dbJson.result?.uuid;
 			console.log(`   ✅ 开发数据库 ID: ${dbId}`);
-
-			const devConfig = {
-				$schema: "node_modules/wrangler/config-schema.json",
-				name: "ariya",
-				workers_dev: true,
-				main: "src/index.ts",
-				compatibility_date: "2026-06-28",
-				compatibility_flags: ["nodejs_compat"],
-				d1_databases: [{
-					binding: "DB",
-					database_name: devDbName,
-					database_id: dbId,
-				}],
-			};
-			writeFileSync(devConfigPath, JSON.stringify(devConfig, null, "\t") + "\n");
-			console.log("   ✅ wrangler.dev.jsonc 已创建（已加入 .gitignore，不会提交）");
 		}
+
+		// Generate wrangler.dev.jsonc from template
+		if (!existsSync(devConfigTemplatePath)) {
+			console.error("❌ 未找到 wrangler.dev.jsonc.example 模板文件");
+			process.exit(1);
+		}
+		const template = readFileSync(devConfigTemplatePath, "utf-8");
+		writeFileSync(devConfigPath, template.replace("__DEV_D1_DATABASE_ID__", dbId));
+		console.log("   ✅ wrangler.dev.jsonc 已从模板生成（已加入 .gitignore，不会提交）");
 	}
 
 	// Write .dev.vars with HMAC secret

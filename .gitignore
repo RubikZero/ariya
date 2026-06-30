@@ -176,6 +176,8 @@ frontend/dist
 .env*
 !.env.example
 .wrangler/
+wrangler.dev.jsonc
+!wrangler.dev.jsonc.example
 
 # OpenCode
 

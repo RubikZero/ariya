@@ -1,0 +1,25 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "ariya-dev",
+	"workers_dev": true,
+	"main": "src/index.ts",
+	"compatibility_date": "2026-06-10",
+	"compatibility_flags": [
+		"nodejs_compat"
+	],
+	"vars": {
+		"TIMEOUT": "600"
+	},
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "ariya-sts2-mod-logs-dev",
+			"database_id": "__DEV_D1_DATABASE_ID__"
+		}
+	],
+	"assets": {
+		"directory": "frontend/dist",
+		"binding": "ASSETS",
+		"run_worker_first": ["/", "/index.html", "/api", "/api/*", "/admin", "/admin/*"]
+	}
+}
