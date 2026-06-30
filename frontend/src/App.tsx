@@ -13,7 +13,7 @@ import { type ReactNode } from "react";
 function ProtectedRoute({ children, adminOnly = false }: { children: ReactNode; adminOnly?: boolean }) {
 	const { user, loading } = useAuth();
 	if (loading) return <p style={{ color: "#94a3b8", padding: "2rem" }}>Loading...</p>;
-	if (!user) return <Navigate to="/" replace />;
+	if (!user) return <Navigate to="/admin/login" replace />;
 	if (adminOnly && user.role !== "admin") return <Navigate to="/admin/browse" replace />;
 	return <>{children}</>;
 }
@@ -30,8 +30,8 @@ export default function App() {
 		<BrowserRouter>
 			<AuthProvider>
 				<Routes>
-					<Route path="/" element={<GuestRoute><Login /></GuestRoute>} />
-					<Route path="/register" element={<GuestRoute><Register /></GuestRoute>} />
+					<Route path="/admin/login" element={<GuestRoute><Login /></GuestRoute>} />
+					<Route path="/admin/register" element={<GuestRoute><Register /></GuestRoute>} />
 
 					<Route element={<Layout />}>
 						<Route path="/admin" element={<ProtectedRoute adminOnly><Dashboard /></ProtectedRoute>} />

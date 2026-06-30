@@ -37,7 +37,7 @@ export default function Register() {
 				<input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
 				<button type="submit" className="btn btn-primary" style={{ width: "100%", marginTop: "0.5rem" }}>{t("register.btn")}</button>
 				<p style={{ textAlign: "center", marginTop: "1rem", fontSize: "0.8125rem", color: "var(--text-secondary)" }}>
-					{t("register.has_account")} <Link to="/" style={{ color: "var(--accent-primary)", textDecoration: "none" }}>{t("register.signin")}</Link>
+					{t("register.has_account")} <Link to="/admin/login" style={{ color: "var(--accent-primary)", textDecoration: "none" }}>{t("register.signin")}</Link>
 				</p>
 			</form>
 		</div>

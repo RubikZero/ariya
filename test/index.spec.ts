@@ -141,15 +141,15 @@ describe("Ariya log endpoint", () => {
 		expect(loginJson.token).toBeDefined();
 		const token = loginJson.token;
 
-		// Admin page (no token → login page)
+		// Admin page (no token → SPA shell)
 		const r6 = await worker.fetch(new IncomingRequest("http://example.com/admin"), env, createExecutionContext());
 		expect(r6.status).toBe(200);
-		expect(await r6.text()).toContain("管理员登录");
+		expect(await r6.text()).toContain("id=\"root\"");
 
-		// Admin page (with token → dashboard)
+		// Admin page (with token → SPA shell)
 		const r7 = await worker.fetch(new IncomingRequest("http://example.com/admin?token=" + encodeURIComponent(token)), env, createExecutionContext());
 		expect(r7.status).toBe(200);
-		expect(await r7.text()).toContain("生成 HMAC 密钥");
+		expect(await r7.text()).toContain("id=\"root\"");
 
 		// Logs (no token → 401)
 		const r8 = await worker.fetch(new IncomingRequest("http://example.com/admin/logs"), env, createExecutionContext());

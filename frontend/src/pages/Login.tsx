@@ -46,7 +46,10 @@ export default function Login() {
 				method: "POST",
 				body: JSON.stringify({ username: regUsername, password: regPassword }),
 			});
-			setRegMsg(t("login.created"));
+			setError(t("login.created"));
+			setUsername(regUsername);
+			setPassword("");
+			setRegPassword("");
 			setFirstRun(false);
 		} catch (err: any) {
 			setRegMsg(err.message);
@@ -97,7 +100,7 @@ export default function Login() {
 					<input type="password" value={password} onChange={(e) => setPassword(e.target.value)} style={inputStyle} autoComplete="current-password" disabled={busy} />
 					<button type="submit" disabled={busy} style={btnStyle}>{busy ? t("login.loading") : t("login.btn")}</button>
 					<p style={{ textAlign: "center", marginTop: "1rem", fontSize: "0.8125rem", color: "#94a3b8" }}>
-						{t("login.no_account")} <Link to="/register" style={{ color: "#3b82f6", textDecoration: "none" }}>{t("login.register")}</Link>
+						{t("login.no_account")} <Link to="/admin/register" style={{ color: "#3b82f6", textDecoration: "none" }}>{t("login.register")}</Link>
 					</p>
 				</form>
 			)}

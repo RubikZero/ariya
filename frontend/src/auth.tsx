@@ -36,7 +36,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 	function logout() {
 		clearToken();
 		setUser(null);
-		window.location.href = "/";
+		window.location.href = "/admin/login";
 	}
 
 	return <AuthContext.Provider value={{ user, loading, login, logout }}>{children}</AuthContext.Provider>;

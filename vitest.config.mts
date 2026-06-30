@@ -8,6 +8,10 @@ export default defineWorkersConfig({
 				miniflare: {
 					compatibilityFlags: ["nodejs_compat"],
 					compatibilityDate: "2026-06-10",
+					bindings: {
+						HMAC_SECRET_KEY: "test-secret",
+						TIMEOUT: 300,
+					},
 				},
 			},
 		},

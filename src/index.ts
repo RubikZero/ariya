@@ -25,14 +25,6 @@ export default {
 			token = await createSessionToken(user.username, env.HMAC_SECRET_KEY);
 		}
 
-		// SPA mode: serve index.html for HTML navigation requests
-		if (env.ASSETS && request.method === "GET" && !url.pathname.startsWith("/api/") && !url.pathname.startsWith("/admin/login") && !url.pathname.startsWith("/admin/register-admin") && !url.pathname.startsWith("/.well-known/") && !url.pathname.startsWith("/test")) {
-			const accept = request.headers.get("Accept") || "";
-			if (accept.includes("text/html")) {
-				return env.ASSETS.fetch(request);
-			}
-		}
-
 		// --- Admin API ---
 		if (url.pathname === "/admin/login" && request.method === "POST") {
 			const body = await request.json() as any;
@@ -60,6 +52,26 @@ export default {
 				.bind(body.username, body.username, saltHex + ":" + hashHex).run();
 			return new Response(JSON.stringify({ success: true, message: "Admin registered. You can now log in." }));
 		}
+		if (env.ASSETS && request.method === "GET" && url.pathname.startsWith("/admin")) {
+			if (url.pathname.startsWith("/admin/assets/") || url.pathname === "/admin/favicon.svg") {
+				const assetUrl = new URL(request.url);
+				assetUrl.pathname = assetUrl.pathname.replace(/^\/admin\//, "/");
+				return env.ASSETS.fetch(new Request(assetUrl, request));
+			}
+			const accept = request.headers.get("Accept") || "";
+			const isAdminPage = url.pathname === "/admin"
+				|| url.pathname === "/admin/login"
+				|| url.pathname === "/admin/register"
+				|| url.pathname === "/admin/users"
+				|| url.pathname === "/admin/profile"
+				|| (url.pathname === "/admin/browse" && !url.searchParams.has("_ajax"))
+				|| (url.pathname === "/admin/logs" && url.searchParams.has("hash"));
+			if (accept.includes("text/html") || isAdminPage) {
+				const indexUrl = new URL(request.url);
+				indexUrl.pathname = "/index.html";
+				return env.ASSETS.fetch(new Request(indexUrl, request));
+			}
+		}
 		if (url.pathname === "/admin/logs") {
 			const blocked = requireAuth(user);
 			if (blocked) return blocked;
@@ -70,10 +82,6 @@ export default {
 			if (blocked) return blocked;
 			return handleBrowseLogs(env, request);
 		}
-		if (url.pathname === "/admin/login" && request.method === "GET") {
-			return Response.redirect(url.origin + "/", 302);
-		}
-
 		// --- User management API ---
 		if (url.pathname === "/api/me" && request.method === "GET") {
 			const blocked = requireAuth(user); if (blocked) return blocked;
