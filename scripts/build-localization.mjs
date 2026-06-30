@@ -131,8 +131,12 @@ for (const [locale, folder] of Object.entries(LANG_MAP)) {
 	console.log(`    ${counts}`);
 }
 
-const outPath = join(ROOT, "frontend", "src", "i18n", "game-state.json");
-writeFileSync(outPath, JSON.stringify(output, null, "\t") + "\n");
-
-const sizeKb = (readFileSync(outPath).length / 1024).toFixed(1);
-console.log(`\nDone! Written to frontend/src/i18n/game-state.json (${sizeKb} KB)`);
+const outDir = join(ROOT, "frontend", "src", "i18n", "game-state");
+let totalBytes = 0;
+for (const [locale, data] of Object.entries(output)) {
+	const outPath = join(outDir, `${locale}.json`);
+	writeFileSync(outPath, JSON.stringify(data, null, "\t") + "\n");
+	totalBytes += readFileSync(outPath).length;
+}
+const totalKb = (totalBytes / 1024).toFixed(1);
+console.log(`\nDone! Written ${Object.keys(LANG_MAP).length} files to ${outDir} (${totalKb} KB total)`);

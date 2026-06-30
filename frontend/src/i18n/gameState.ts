@@ -1,4 +1,3 @@
-import translations from "./game-state.json";
 import type { SupportedLocale } from "../locale";
 
 type TranslationData = {
@@ -11,9 +10,37 @@ type TranslationData = {
 	scenes: Record<string, string>;
 };
 
-const data = translations as Record<SupportedLocale, TranslationData>;
+const cache = new Map<SupportedLocale, TranslationData>();
 
-// Maps game_state field names to translation categories and value separators
+function detectInitialLocale(): SupportedLocale {
+	const saved = localStorage.getItem("ariya_locale");
+	const all = ["zh-CN","en","de","es","es-419","fr","it","ja","ko","pl","pt-BR","ru","th","tr"] as const;
+	if (saved && (all as readonly string[]).includes(saved)) return saved as SupportedLocale;
+	if (typeof navigator === "undefined") return "zh-CN";
+	const lang = navigator.language || "";
+	if (lang.startsWith("zh")) return "zh-CN";
+	if ((all as readonly string[]).find((l) => lang.startsWith(l))) {
+		const match = (all as readonly string[]).find((l) => lang.startsWith(l));
+		if (match) return match as SupportedLocale;
+	}
+	return "en";
+}
+
+const initialLocale = detectInitialLocale();
+Promise.all([
+	import(`./game-state/${initialLocale}.json`),
+	...(initialLocale !== "en" ? [import(`./game-state/en.json`)] : []),
+]).then(([main, fallback]) => {
+	cache.set(initialLocale, main as unknown as TranslationData);
+	if (fallback) cache.set("en", fallback as unknown as TranslationData);
+});
+
+export async function ensureGameState(locale: SupportedLocale): Promise<void> {
+	if (cache.has(locale)) return;
+	const data = await import(`./game-state/${locale}.json`);
+	cache.set(locale, data as unknown as TranslationData);
+}
+
 const FIELD_MAP: Record<string, { category: keyof TranslationData; separator?: string }> = {
 	"game.act_name": { category: "acts" },
 	"game.mode": { category: "game_modes" },
@@ -26,9 +53,8 @@ const FIELD_MAP: Record<string, { category: keyof TranslationData; separator?: s
 };
 
 function translateValue(rawValue: string, category: keyof TranslationData, locale: SupportedLocale): string {
-	const table = data[locale]?.[category];
+	const table = cache.get(locale)?.[category];
 	if (!table) return rawValue;
-	// Try direct match first, then try stripping prefix (e.g. ACT.HIVE -> HIVE, MONSTER.EXOSKELETON -> EXOSKELETON)
 	const translated = table[rawValue] ?? table[rawValue.replace(/^[A-Z_]+\./, "")];
 	if (!translated || translated === rawValue) return rawValue;
 	return `${rawValue} (${translated})`;

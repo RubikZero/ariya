@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { apiUrl } from "../api";
 import { useLocale } from "../locale";
-import { translateGameState } from "../i18n/gameState";
+import { translateGameState, ensureGameState } from "../i18n/gameState";
 
 export default function LogDetail() {
 	const { t, lang } = useLocale();
@@ -10,6 +10,7 @@ export default function LogDetail() {
 	const hash = search.get("hash") || "";
 	const [log, setLog] = useState<any>(null);
 	const [loading, setLoading] = useState(true);
+	const [gsTick, setGsTick] = useState(0);
 
 	useEffect(() => {
 		if (!hash) return;
@@ -23,11 +24,17 @@ export default function LogDetail() {
 			.catch(() => setLoading(false));
 	}, [hash]);
 
+	useEffect(() => {
+		ensureGameState(lang).then(() => setGsTick((n) => n + 1));
+	}, [lang]);
+
 	if (loading) return <p style={{ color: "var(--text-secondary)", padding: "2rem" }}>{t("loading")}</p>;
 	if (!log) return <p style={{ color: "var(--accent-danger)", padding: "2rem" }}>{t("not_found")}</p>;
 
 	const gs = parseGameState(log.game_state);
-	const gsTranslated = gs ? translateGameState(gs, lang as any) : null;
+	// use gsTick to force re-render when game state data loads asynchronously
+	void gsTick;
+	const gsTranslated = gs ? translateGameState(gs, lang) : null;
 
 	return (
 		<>
