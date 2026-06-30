@@ -11,6 +11,9 @@
 	"compatibility_flags": [
 		"nodejs_compat"
 	],
+	"vars": {
+		"TIMEOUT": "600"
+	},
 	"d1_databases": [
 		{
 			"binding": "DB",
